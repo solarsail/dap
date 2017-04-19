@@ -11,3 +11,4 @@ app = falcon.API(middleware=[auth_middleware, RequireJSON(), JSONTranslator()])
 
 app.add_route("/login", api.login)
 app.add_route("/test", api.test)
+# TODO: 404
