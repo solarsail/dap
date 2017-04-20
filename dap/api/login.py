@@ -1,6 +1,6 @@
 import falcon
 
-from utils import jwt_backend, basic_backend
+from dap.utils import jwt_backend, basic_backend
 
 
 

@@ -2,8 +2,8 @@ import json
 import falcon
 
 from falcon_auth import FalconAuthMiddleware, JWTAuthBackend, BasicAuthBackend
-from db import LOCAL_CONN
-from user import User
+from dap.db import LOCAL_CONN
+from dap.user import User
 
 
 def user_loader(username, password):
@@ -17,7 +17,8 @@ def user_loader(username, password):
             'name': user.name,
             'db_addr': user.db_addr,
             'db_port': user.db_port,
-            'db_pswd': user.db_pswd
+            'db_pswd': user.db_pswd,
+            'db_name': user.db_name
         }
 
 jwt_backend = JWTAuthBackend(lambda payload: payload['user'], 'secretkey', verify_claims=['iat', 'exp'], required_claims=['iat', 'exp']) # TODO: use config
@@ -29,6 +30,7 @@ class RequireJSON(object):
     def process_request(self, req, resp):
         if req.method in ('POST', 'PUT'):
             if not req.content_type or 'application/json' not in req.content_type:
+                # TODO: change or remove link
                 raise falcon.HTTPUnsupportedMediaType(
                     'This API only supports requests encoded as JSON.',
                     href='http://docs.examples.com/api/json')
