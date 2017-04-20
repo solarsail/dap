@@ -1,9 +1,14 @@
 import json
+import logging
 import falcon
 
+from sqlalchemy import exc
 from falcon_auth import FalconAuthMiddleware, JWTAuthBackend, BasicAuthBackend
 from dap.db import LOCAL_CONN
 from dap.user import User
+
+
+log = logging.getLogger(__name__)
 
 
 def user_loader(username, password):
@@ -67,3 +72,18 @@ class JSONTranslator(object):
             return
 
         resp.body = json.dumps(resp.context['result'])
+
+
+def handle_db_exception(ex, req, resp, params):
+    log.exception(ex)
+    code, description = ex.orig
+    if code == 1045:
+        description = ('Cannot connect to database')
+        raise falcon.HTTPForbidden('Access denied', description)
+    elif code == 1054:
+        raise falcon.HTTPBadRequest('Bad request', description)
+    elif code == 1146:
+        raise falcon.HTTPBadRequest('Bad request', description)
+    else:
+        description = ('Unspecified error')
+        raise falcon.HTTPForbidden('Operational error', description)

@@ -9,7 +9,7 @@ class Login(object):
         'backend': basic_backend
     }
 
-    def on_post(self, req, resp):
+    def on_get(self, req, resp):
         user = req.context['user']
         # Cannot use user object directly as token payload,
         # since the object has to be bound to a DB session.

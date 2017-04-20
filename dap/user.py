@@ -17,7 +17,7 @@ class User(Base):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(32), nullable=False, unique=True) # TODO: add unique constraint
+    name = Column(String(32), nullable=False, unique=True)
     pswd = Column(String(87), nullable=False)
     db_addr = Column(String(16), nullable=False)
     db_port = Column(Integer, nullable=False)
