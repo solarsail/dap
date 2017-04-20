@@ -16,6 +16,6 @@ app = falcon.API(middleware=[auth_middleware, RequireJSON(), JSONTranslator()])
 
 app.add_route("/login", api.login)
 app.add_route("/test", api.test)
-app.add_route("/data/{table}/{id}", api.rdbms_row)
-app.add_route("/data/{table}", api.rdbms_table)
+app.add_route("/data/{table}", api.mysql_table)
+app.add_route("/data/{table}/{id}", api.mysql_row)
 # TODO: 404

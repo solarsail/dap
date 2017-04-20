@@ -9,6 +9,19 @@ from dap.user import user_db_engine
 
 log = logging.getLogger(__name__)
 
+
+def _handle_db_ex(ex):
+    log.exception(ex)
+    code, description = ex.orig
+    if code == 1045:
+        description = ('Cannot connect to database')
+        raise falcon.HTTPForbidden('Access denied', description)
+    elif code == 1054:
+        raise falcon.HTTPInvalidParam(description, "column")
+    else:
+        description = ('Unspecified error')
+        raise falcon.HTTPForbidden('Operational error', description)
+
 def _select(engine, table, id=None):
     where = " WHERE id={}".format(id) if id else ""
     query = "SELECT * FROM {}{}".format(table, where)
@@ -17,14 +30,7 @@ def _select(engine, table, id=None):
         with engine.connect() as conn:
             result = conn.execute(query).fetchall()
     except exc.OperationalError as ex:
-        log.exception(ex)
-        code, description = ex.orig
-        if code == 1045:
-            description = ('Cannot connect to database')
-            raise falcon.HTTPForbidden('Access denied', description)
-        else:
-            description = ('Unspecified error')
-            raise falcon.HTTPForbidden('Database error', description)
+        _handle_db_ex(ex)
     except Exception as ex:
         log.exception(ex)
         description = ('Invalid table name or id')
@@ -57,16 +63,7 @@ class RDBTableAccess(object):
                 result = conn.execute(query)
                 id = result.lastrowid
         except exc.OperationalError as ex:
-            log.exception(ex)
-
-            code, description = ex.orig
-            # distinguish among errors
-            # TODO: extract error code handling
-            if code == 1045:
-                description = ('Cannot connect to database')
-                raise falcon.HTTPForbidden('Access denied', description)
-            elif code == 1054:
-                raise falcon.HTTPInvalidParam(description, "column")
+            _handle_db_ex(ex)
         except Exception as ex:
             log.exception(ex)
             description = ('Unspecified error')
@@ -99,16 +96,7 @@ class RDBRowAccess(object):
             with engine.connect() as conn:
                 result = conn.execute(query)
         except exc.OperationalError as ex:
-            log.exception(ex)
-
-            code, description = ex.orig
-            # distinguish among errors
-            # TODO: extract error code handling
-            if code == 1045:
-                description = ('Cannot connect to database')
-                raise falcon.HTTPForbidden('Access denied', description)
-            elif code == 1054:
-                raise falcon.HTTPInvalidParam(description, "column")
+            _handle_db_ex(ex)
         except Exception as ex:
             log.exception(ex)
             description = ('Unspecified error')
@@ -127,16 +115,7 @@ class RDBRowAccess(object):
             with engine.connect() as conn:
                 result = conn.execute(query)
         except exc.OperationalError as ex:
-            log.exception(ex)
-
-            code, description = ex.orig
-            # distinguish among errors
-            # TODO: extract error code handling
-            if code == 1045:
-                description = ('Cannot connect to database')
-                raise falcon.HTTPForbidden('Access denied', description)
-            elif code == 1054:
-                raise falcon.HTTPInvalidParam(description, "column")
+            _handle_db_ex(ex)
         except Exception as ex:
             log.exception(ex)
             description = ('Unspecified error')

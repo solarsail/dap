@@ -1,10 +1,10 @@
 from dap.api.login import Login
 from dap.api.test import TestResource
-from dap.api.rdbms import RDBTableAccess, RDBRowAccess
+from dap.api.mysql import RDBTableAccess, RDBRowAccess
 
 login = Login()
 test = TestResource()
-rdbms_table = RDBTableAccess()
-rdbms_row = RDBRowAccess()
+mysql_table = RDBTableAccess()
+mysql_row = RDBRowAccess()
 
-__all__ = [login, test, rdbms_table, rdbms_row]
+__all__ = [login, test, mysql_table, mysql_row]
