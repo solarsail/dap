@@ -55,6 +55,7 @@ class RDBTableAccess(object):
         try:
             with engine.connect() as conn:
                 result = conn.execute(query)
+                id = result.lastrowid
         except exc.OperationalError as ex:
             log.exception(ex)
 
@@ -71,8 +72,7 @@ class RDBTableAccess(object):
             description = ('Unspecified error')
             raise falcon.HTTPServiceUnavailable('Data access error', description)
 
-        # TODO: return id
-        resp.context['result'] = {'result': 'ok'}
+        resp.context['result'] = {'result': 'ok', 'id': id}
         resp.status = falcon.HTTP_201
 
 
