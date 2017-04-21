@@ -1,0 +1,6 @@
+db:
+    username: dapadmin
+    password: 123456
+
+token:
+    secret: a4b559e3afad5d1298447001f8005012

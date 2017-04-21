@@ -16,3 +16,4 @@ class Login(object):
         token = jwt_backend.get_auth_token(user)
         resp.context['result'] = { 'token': token }
         resp.status = falcon.HTTP_200
+

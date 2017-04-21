@@ -6,6 +6,7 @@ from sqlalchemy import exc
 from falcon_auth import FalconAuthMiddleware, JWTAuthBackend, BasicAuthBackend
 from dap.db import LOCAL_CONN
 from dap.user import User
+from dap.config import CONF
 
 
 log = logging.getLogger(__name__)
@@ -15,6 +16,8 @@ def user_loader(username, password):
     """Loads a user by its credentials."""
     with LOCAL_CONN.new_session() as session:
         user = User.auth(session, username, password)
+        if not user:
+            raise falcon.HTTPForbidden("Login failed", "Invalid username or password")
         # Cannot use user object outside the session scope,
         # since the object has to be bound to a DB session.
         return {
@@ -26,7 +29,7 @@ def user_loader(username, password):
             'db_name': user.db_name
         }
 
-jwt_backend = JWTAuthBackend(lambda payload: payload['user'], 'secretkey', verify_claims=['iat', 'exp'], required_claims=['iat', 'exp']) # TODO: use config
+jwt_backend = JWTAuthBackend(lambda payload: payload['user'], CONF['token']['secret'], verify_claims=['iat', 'exp'], required_claims=['iat', 'exp'])
 basic_backend = BasicAuthBackend(user_loader)
 auth_middleware = FalconAuthMiddleware(jwt_backend)
 

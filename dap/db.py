@@ -3,6 +3,8 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+from dap.config import CONF
+
 
 Base = declarative_base()
 
@@ -35,6 +37,6 @@ class DBEngine(object):
         columns = inspector.get_columns(table)
         return [c['name'] for c in columns]
 
-
-LOCAL_CONN = DBEngine('dapadmin', '123456') # TODO: use config
+_db_cfg = CONF['db']
+LOCAL_CONN = DBEngine(_db_cfg['username'], _db_cfg['password'])
 Base.metadata.create_all(LOCAL_CONN.engine)

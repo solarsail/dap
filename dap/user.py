@@ -1,10 +1,14 @@
 import string
 import random
+import logging
 
 from passlib.hash import pbkdf2_sha256
 from sqlalchemy import Column, Integer, String
 
 from dap.db import Base, DBEngine
+
+
+log = logging.getLogger(__name__)
 
 
 def generate_random_str(length=32):
@@ -49,10 +53,10 @@ class User(Base):
             if pbkdf2_sha256.verify(pswd, user.pswd):
                 return user
             else:
-                # TODO: log
+                log.warning("Login failed: username: {}, password: {}".format(name, pswd))
                 return None
-        except:
-            # TODO: log
+        except Exception as ex:
+            log.exception(ex)
             return None
 
 
