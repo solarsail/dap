@@ -60,7 +60,7 @@ class User(Base):
             return None
 
 
-_user_engines = {}
+_user_engines = {} # DB connection cache
 
 def user_db_engine(user):
     """
