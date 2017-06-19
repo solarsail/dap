@@ -73,7 +73,7 @@ class RDBRowAccess(object):
         """Delete an existing row."""
         user = req.context['user']
         engine = user_db_engine(user)
-        query = "DELETE FROM {} WHERE id={} CASCADE".format(table, id)
+        query = "DELETE FROM {} WHERE id={}".format(table, id)
 
         with engine.connect() as conn:
             result = conn.execute(query)

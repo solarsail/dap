@@ -39,4 +39,3 @@ class DBEngine(object):
 
 _db_cfg = CONF['db']
 LOCAL_CONN = DBEngine(_db_cfg['username'], _db_cfg['password'])
-Base.metadata.create_all(LOCAL_CONN.engine)

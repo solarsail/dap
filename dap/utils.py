@@ -7,9 +7,16 @@ from falcon_auth import FalconAuthMiddleware, JWTAuthBackend, BasicAuthBackend
 from dap.db import LOCAL_CONN
 from dap.user import User
 from dap.config import CONF
+from dap import exceptions
 
 
 log = logging.getLogger(__name__)
+
+
+def init_superuser(username, password):
+    user = User.new(name=username, pswd=password, db_addr='127.0.0.1', db_port=3306, db_name='dapadmin_db', is_admin=True)
+    with LOCAL_CONN.new_session() as session:
+        session.add(user)
 
 
 def user_loader(username, password):
@@ -26,7 +33,8 @@ def user_loader(username, password):
             'db_addr': user.db_addr,
             'db_port': user.db_port,
             'db_pswd': user.db_pswd,
-            'db_name': user.db_name
+            'db_name': user.db_name,
+            'is_admin': user.is_admin
         }
 
 jwt_backend = JWTAuthBackend(lambda payload: payload['user'], CONF['token']['secret'], verify_claims=['iat', 'exp'], required_claims=['iat', 'exp'])
@@ -38,10 +46,8 @@ class RequireJSON(object):
     def process_request(self, req, resp):
         if req.method in ('POST', 'PUT'):
             if not req.content_type or 'application/json' not in req.content_type:
-                # TODO: change or remove link
                 raise falcon.HTTPUnsupportedMediaType(
-                    'This API only supports requests encoded as JSON.',
-                    href='http://docs.examples.com/api/json')
+                    'This API only supports requests encoded as JSON.')
 
 
 class JSONTranslator(object):
@@ -82,11 +88,16 @@ def handle_db_exception(ex, req, resp, params):
     code, description = ex.orig
     if code == 1045:
         description = ('Cannot connect to database')
-        raise falcon.HTTPForbidden('Access denied', description)
+        raise exceptions.HTTPForbiddenError(description)
     elif code == 1054:
-        raise falcon.HTTPBadRequest('Bad request', description)
+        raise exceptions.HTTPBadRequestError(description)
     elif code == 1146:
-        raise falcon.HTTPBadRequest('Bad request', description)
+        raise exceptions.HTTPBadRequestError(description)
     else:
         description = ('Unspecified error')
-        raise falcon.HTTPForbidden('Operational error', description)
+        raise exceptions.HTTPForbiddenError(description)
+
+def handle_sql_exception(ex, req, resp, params):
+    if (type(ex) == exc.NoSuchTableError):
+        log.warn("table not exist: {}".format(params))
+        raise exceptions.HTTPBadRequestError("Table not exist")

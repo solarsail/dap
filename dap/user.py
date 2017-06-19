@@ -3,7 +3,7 @@ import random
 import logging
 
 from passlib.hash import pbkdf2_sha256
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 
 from dap.db import Base, DBEngine
 
@@ -27,19 +27,20 @@ class User(Base):
     db_port = Column(Integer, nullable=False)
     db_pswd = Column(String(32), nullable=False)
     db_name = Column(String(32))
+    is_admin = Column(Boolean)
 
     def __repr__(self):
         return "<User(name='{}', db_addr='{}', db_port={}, db_pswd='{}')>".format(self.name, self.db_addr, self.db_port, self.db_pswd)
 
     @classmethod
-    def new(cls, name, pswd, db_addr, db_port=3306, db_name=None):
+    def new(cls, name, pswd, db_addr, db_port=3306, db_name=None, db_pswd=None, is_admin=False):
         """Creates a new user instance.
 
-        The user password is hashed using passlib; DB password is generated randomly.
+        The user password is hashed using passlib; DB password is generated randomly if not provided.
         """
         pswd = pbkdf2_sha256.hash(pswd)
-        db_pswd = generate_random_str()
-        return User(name=name, pswd=pswd, db_addr=db_addr, db_port=db_port, db_pswd=db_pswd, db_name=db_name)
+        db_pswd = db_pswd if db_pswd else generate_random_str()
+        return User(name=name, pswd=pswd, db_addr=db_addr, db_port=db_port, db_pswd=db_pswd, db_name=db_name, is_admin=is_admin)
 
     @classmethod
     def auth(cls, session, name, pswd):
