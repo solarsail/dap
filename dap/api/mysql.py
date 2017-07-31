@@ -24,6 +24,7 @@ class RDBTableAccess(object):
         engine = user_db_engine(user)
         result = _select(engine, table)
 
+        log.info("user [{}]: get table [{}]".format(user, table))
         resp.context['result'] = { 'result': 'ok', 'data': result }
         resp.status = falcon.HTTP_200
 
@@ -51,6 +52,7 @@ class RDBRowAccess(object):
         engine = user_db_engine(user)
         result = _select(engine, table, id)
 
+        log.info("user [{}]: get row with id [{}] from table [{}]".format(user, id, table))
         resp.context['result'] = { 'result': 'ok', 'data': result }
         resp.status = falcon.HTTP_200
 
