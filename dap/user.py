@@ -17,48 +17,56 @@ def generate_random_str(length=32):
     return ''.join(random.choice(chars) for _ in range(length))
 
 
+
 class User(Base):
-    __tablename__ = 'users'
+    __tablename__ = 'user'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(32), nullable=False, unique=True)
-    pswd = Column(String(87), nullable=False)
-    db_addr = Column(String(16), nullable=False)
-    db_port = Column(Integer, nullable=False)
-    db_pswd = Column(String(32), nullable=False)
-    db_name = Column(String(32))
-    is_admin = Column(Boolean)
+    app = Column(String(32), nullable=False, unique=True)  # app name
+    desc = Column(String(256), nullable=False)             # app description
+    user = Column(String(32), nullable=False, unique=True) # generated DB user
+    pswd = Column(String(87), nullable=False)              # generated DB password
+    key = Column(String(64), nullable=True)                # hashed API key
+    is_admin = Column(Boolean, nullable=False)             # flag of admin key (used by this service only)
 
     def __repr__(self):
-        return "<User(name='{}', db_addr='{}', db_port={}, db_pswd='{}')>".format(self.name, self.db_addr, self.db_port, self.db_pswd)
+        return "<User(app='{}', desc='{}', user='{}', pswd='{}', is_admin={})>".format(self.app, self.desc, self.user, self.pswd, self.is_admin)
 
     @classmethod
-    def new(cls, name, pswd, db_addr, db_port=3306, db_name=None, db_pswd=None, is_admin=False):
+    def new(cls, app, desc, is_admin=False):
         """Creates a new user instance.
 
-        The user password is hashed using passlib; DB password is generated randomly if not provided.
+        The user password is hashed using passlib; DB password is generated randomly.
         """
-        pswd = pbkdf2_sha256.hash(pswd)
-        db_pswd = db_pswd if db_pswd else generate_random_str()
-        return User(name=name, pswd=pswd, db_addr=db_addr, db_port=db_port, db_pswd=db_pswd, db_name=db_name, is_admin=is_admin)
+        user = "app_{}".format(pbkdf2_sha256.hash(app)[:6])
+        pswd = generate_random_str()
+        return User(app=app, desc=desc, user=user, pswd=pswd, key=None, is_admin=is_admin)
 
     @classmethod
-    def auth(cls, session, name, pswd):
+    def auth(cls, session, key):
         """
         Perfroms user authentication.
 
         Returns the user object if success, None otherwise.
         """
         try:
-            user = session.query(cls).filter_by(name=name).one()
-            if pbkdf2_sha256.verify(pswd, user.pswd):
-                return user
+            users = session.query(cls).all()
+            for user in users:
+                if pbkdf2_sha256.verify(key, user.key):
+                    return user
             else:
-                log.warning("Login failed: username: {}, password: {}".format(name, pswd))
+                log.warning("Invalid key: {}".format(key))
                 return None
         except Exception as ex:
             log.exception(ex)
             return None
+
+    def issue_key(self):
+        """Issues an api key for this app."""
+        key = generate_random_str()
+        key = pbkdf2_sha256.hash(key)
+        self.key = key
+        return key
 
 
 _user_engines = {} # DB connection cache
@@ -83,10 +91,11 @@ if __name__ == '__main__':
     Base.metadata.create_all(conn.engine)
 
     with conn.new_session() as session:
-        user = User.new(name='app1', pswd='app1pass', db_addr='192.168.1.52')
+        user = User.new(app='app1', desc='app1 description')
+        key = user.issue_key()
         print(user)
         session.add(user)
 
     with conn.new_session() as session:
-        user = User.auth(session, 'app1', 'app1pass')
+        user = User.auth(session, key)
         print(user)

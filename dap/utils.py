@@ -3,18 +3,18 @@ import logging
 import falcon
 
 from sqlalchemy import exc
-from falcon_auth import FalconAuthMiddleware, JWTAuthBackend, BasicAuthBackend
 from dap.db import LOCAL_CONN
 from dap.user import User
-from dap.config import CONF
 from dap import exceptions
 
 
 log = logging.getLogger(__name__)
 
 
-def init_superuser(username, password):
-    user = User.new(name=username, pswd=password, db_addr='127.0.0.1', db_port=3306, db_name='dapadmin_db', is_admin=True)
+def init_superuser():
+    user = User.new(app="__dap_admin", desc="Data access platform", is_admin=True)
+    key = user.issue_key()
+    log.info("ADMIN KEY: {}".format(key))
     with LOCAL_CONN.new_session() as session:
         session.add(user)
 
@@ -24,7 +24,7 @@ def user_loader(username, password):
     with LOCAL_CONN.new_session() as session:
         user = User.auth(session, username, password)
         if not user:
-            raise falcon.HTTPForbidden("Login failed", "Invalid username or password")
+            raise exceptions.HTTPForbiddenError("Invalid key")
         # Cannot use user object outside the session scope,
         # since the object has to be bound to a DB session.
         return {
@@ -37,12 +37,15 @@ def user_loader(username, password):
             'is_admin': user.is_admin
         }
 
-jwt_backend = JWTAuthBackend(lambda payload: payload['user'], CONF['token']['secret'], verify_claims=['iat', 'exp'], required_claims=['iat', 'exp'])
-basic_backend = BasicAuthBackend(user_loader)
-auth_middleware = FalconAuthMiddleware(jwt_backend)
+
+def create_db_user(user, pswd):
+    with LOCAL_CONN.new_session() as session:
+        # TODO: create mysql user
+        pass
+
+
 
 class RequireJSON(object):
-
     def process_request(self, req, resp):
         if req.method in ('POST', 'PUT'):
             if not req.content_type or 'application/json' not in req.content_type:
@@ -51,7 +54,6 @@ class RequireJSON(object):
 
 
 class JSONTranslator(object):
-
     def process_request(self, req, resp):
         # req.stream corresponds to the WSGI wsgi.input environ variable,
         # and allows you to read bytes from the request body.

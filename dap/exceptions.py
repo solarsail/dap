@@ -3,7 +3,7 @@ import falcon
 from sqlalchemy import exc
 
 
-class DAPHTTPError(falcon.HTTPError):                                                                                                                                                                         
+class DAPHTTPError(falcon.HTTPError):
     """Base class for custom falcon exceptions."""
     def __init__(self, status, msg):
         super(DAPHTTPError, self).__init__(status)
@@ -36,3 +36,4 @@ class HTTPForbiddenError(DAPHTTPError):
 class HTTPMissingParamError(DAPHTTPError):
     def __init__(self, msg):
         super(HTTPMissingParamError, self).__init__(falcon.HTTP_400, "Missing parameter: {}".format(msg))
+
