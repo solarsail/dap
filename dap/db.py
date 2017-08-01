@@ -9,9 +9,11 @@ from dap.config import CONF
 Base = declarative_base()
 
 class DBEngine(object):
-    def __init__(self, user, password, host='127.0.0.1', port=3306, db=None):
-        db = db if db else '{}_db'.format(user)
-        self.engine = create_engine('mysql://{}:{}@{}:{}/{}'.format(user, password, host, port, db))
+    def __init__(self, user, password, db, host='127.0.0.1', port=3306):
+        conn_str = 'mysql://{}:{}@{}:{}'.format(user, password, host, port)
+        if db:
+            conn_str = '/'.join([conn_str, db])
+        self.engine = create_engine(conn_str)
         self.session = sessionmaker(bind=self.engine)
 
 
@@ -39,4 +41,4 @@ class DBEngine(object):
 
 
 _db_cfg = CONF['db']
-LOCAL_CONN = DBEngine(_db_cfg['username'], _db_cfg['password'])
+LOCAL_CONN = DBEngine(_db_cfg['username'], _db_cfg['password'], 'dapadmin')

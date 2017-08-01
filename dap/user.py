@@ -6,6 +6,7 @@ from passlib.hash import pbkdf2_sha256
 from sqlalchemy import Column, Integer, String, Boolean
 
 from dap.db import Base, DBEngine
+from dap.config import CONF
 
 
 log = logging.getLogger(__name__)
@@ -25,8 +26,8 @@ class User(Base):
     app = Column(String(32), nullable=False, unique=True)  # app name
     desc = Column(String(256), nullable=False)             # app description
     user = Column(String(32), nullable=False, unique=True) # generated DB user
-    pswd = Column(String(87), nullable=False)              # generated DB password
-    key = Column(String(64), nullable=True)                # hashed API key
+    pswd = Column(String(32), nullable=False)              # generated DB password
+    key = Column(String(87), nullable=True)                # hashed API key
     is_admin = Column(Boolean, nullable=False)             # flag of admin key (used by this service only)
 
     def __repr__(self):
@@ -38,7 +39,7 @@ class User(Base):
 
         The user password is hashed using passlib; DB password is generated randomly.
         """
-        user = "app_{}".format(pbkdf2_sha256.hash(app)[:6])
+        user = "app_{}".format(generate_random_str(6))
         pswd = generate_random_str()
         return User(app=app, desc=desc, user=user, pswd=pswd, key=None, is_admin=is_admin)
 
@@ -53,7 +54,17 @@ class User(Base):
             users = session.query(cls).all()
             for user in users:
                 if pbkdf2_sha256.verify(key, user.key):
-                    return user
+                    # Cannot use user object outside the session scope,
+                    # since the object has to be bound to a DB session.
+                    return {
+                        'id': user.id,
+                        'app': user.app,
+                        'desc': user.desc,
+                        'user': user.user,
+                        'pswd': user.pswd,
+                        'is_admin': user.is_admin,
+                    }
+
             else:
                 log.warning("Invalid key: {}".format(key))
                 return None
@@ -64,8 +75,8 @@ class User(Base):
     def issue_key(self):
         """Issues an api key for this app."""
         key = generate_random_str()
-        key = pbkdf2_sha256.hash(key)
-        self.key = key
+        hashed_key = pbkdf2_sha256.hash(key)
+        self.key = hashed_key
         return key
 
 
@@ -78,11 +89,12 @@ def user_db_engine(user):
     Args:
         user(dict): user dict obtained from request context.
     """
-    if user['name'] not in _user_engines:
-        engine = DBEngine(user['name'], user['db_pswd'], user['db_addr'], user['db_port'], user['db_name'])
-        _user_engines[user['name']] = engine
+    dbuser = user['name']
+    if dbuser not in _user_engines:
+        engine = DBEngine(dbuser, user['pswd'], CONF['shared_db']['name'])
+        _user_engines[dbuser] = engine
 
-    return _user_engines[user['name']]
+    return _user_engines[dbuser]
 
 
 

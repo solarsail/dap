@@ -11,7 +11,7 @@ def _select(engine, table, id=None):
     where = " WHERE id={}".format(id) if id else ""
     query = "SELECT * FROM {}{}".format(table, where)
     columns = engine.columns(table)
-    with engine.connect() as conn:
+    with engine.new_session() as conn:
         result = conn.execute(query).fetchall()
 
     return [dict(zip(columns, r)) for r in result]
@@ -37,7 +37,7 @@ class RDBTableAccess(object):
         engine = user_db_engine(user)
         query = "INSERT INTO {} ({}) VALUES ({})".format(table, keys, values)
 
-        with engine.connect() as conn:
+        with engine.new_session() as conn:
             result = conn.execute(query)
             id = result.lastrowid
 
@@ -65,7 +65,7 @@ class RDBRowAccess(object):
         engine = user_db_engine(user)
         query = "UPDATE {} SET {} WHERE id={}".format(table, pairs, id)
 
-        with engine.connect() as conn:
+        with engine.new_session() as conn:
             result = conn.execute(query)
 
         resp.context['result'] = {'result': 'ok'}
@@ -77,7 +77,7 @@ class RDBRowAccess(object):
         engine = user_db_engine(user)
         query = "DELETE FROM {} WHERE id={}".format(table, id)
 
-        with engine.connect() as conn:
+        with engine.new_session() as conn:
             result = conn.execute(query)
 
         resp.context['result'] = {'result': 'ok'}

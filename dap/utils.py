@@ -1,5 +1,7 @@
 import json
 import logging
+import random
+import string
 import falcon
 
 from sqlalchemy import exc
@@ -14,35 +16,102 @@ log = logging.getLogger(__name__)
 def init_superuser():
     user = User.new(app="__dap_admin", desc="Data access platform", is_admin=True)
     key = user.issue_key()
-    log.info("ADMIN KEY: {}".format(key))
+    print("ADMIN KEY: {}".format(key))
     with LOCAL_CONN.new_session() as session:
         session.add(user)
 
 
-def user_loader(username, password):
-    """Loads a user by its credentials."""
-    with LOCAL_CONN.new_session() as session:
-        user = User.auth(session, username, password)
-        if not user:
-            raise exceptions.HTTPForbiddenError("Invalid key")
-        # Cannot use user object outside the session scope,
-        # since the object has to be bound to a DB session.
-        return {
-            'id': user.id,
-            'name': user.name,
-            'db_addr': user.db_addr,
-            'db_port': user.db_port,
-            'db_pswd': user.db_pswd,
-            'db_name': user.db_name,
-            'is_admin': user.is_admin
-        }
-
-
 def create_db_user(user, pswd):
-    with LOCAL_CONN.new_session() as session:
-        # TODO: create mysql user
-        pass
+    conn = LOCAL_CONN.connect()
+    conn.execute("CREATE USER '{}'@'localhost' IDENTIFIED BY '{}'".format(user, pswd))
+    conn.close()
 
+
+class Logger(object):                                                                                                                                                                                             
+    """Middleware class for request/response logging."""
+    def process_request(self, req, resp):
+        """Logs incoming requests.
+
+        Args:
+            see falcon documentation.
+        """
+        if req.path == '/v1/heartbeat':
+            return
+
+        rid = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8)) # a random request id
+        req.context['_rid'] = rid 
+        log.info("**REQUEST**  [{}] from: [{}], route: {}, content: {}".format(rid, req.remote_addr, req.path, req.context['doc']))
+
+    def process_response(self, req, resp, resource, req_succeeded):
+        """Logs responses.
+
+        Args:
+            see falcon documentation.
+        """
+        if req.path == '/v1/heartbeat':
+            return
+
+        # `resp.body` is not translated from `context` yet if no exception is raised.
+        content = resp.context['result'] if req_succeeded else resp.body
+        log.info("**RESPONSE** [{}] content: {}, succeeded: {}".format(
+            req.context['_rid'], content, req_succeeded))
+
+
+class RequireAuth(object):
+    """Middleware class for key validation.
+
+    Attributes:
+        exempts (list): suffixes of paths which do not require authentication.
+    """
+
+    exempts = []
+
+    def process_resource(self, req, resp, resource, params):
+        """Validates the key and insert the user into the request.
+
+        Args:
+            see falcon documentation.
+        """
+        for item in RequireAuth.exempts:
+            if req.path.endswith(item):
+                return
+
+        key = req.auth
+        with LOCAL_CONN.new_session() as session:
+            user = User.auth(session, key)
+        if user:
+            req.context['user'] = user
+        else:
+            raise exceptions.HTTPForbiddenError("Invalid key")
+
+
+class AdminCheck(object):
+    """Middleware class for Admin check.
+
+    Attributes:
+        admin (list): suffixes of paths which require admin privilege.
+    """
+
+    admin = ['register']
+
+    def process_resource(self, req, resp, resource, params):
+        """Validates the token and insert the payload into the request.
+
+        Args:
+            see falcon documentation.
+        """
+        is_admin = req.context['user']['is_admin']
+        require_admin = False
+
+        for item in AdminCheck.admin:
+            if req.path.endswith(item):
+                require_admin = True
+                break
+
+        if require_admin and not is_admin:
+            raise exceptions.HTTPForbiddenError("Insufficient privilege")
+        if not require_admin and is_admin:
+            raise exceptions.HTTPForbiddenError("Access forbidden for admin account")
 
 
 class RequireJSON(object):
@@ -103,3 +172,6 @@ def handle_sql_exception(ex, req, resp, params):
     if (type(ex) == exc.NoSuchTableError):
         log.warn("table not exist: {}".format(params))
         raise exceptions.HTTPBadRequestError("Table not exist")
+    else:
+        log.exception(ex)
+        raise exceptions.HTTPBadRequestError("Unspecified error")

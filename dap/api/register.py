@@ -1,17 +1,15 @@
+import logging
 import falcon
 
-import dap.utils
-
-from dap import exceptions
+from dap import exceptions, utils
 from dap.user import User
 from dap.db import LOCAL_CONN
 
 
+log = logging.getLogger(__name__)
+
 class Register(object):
     def on_post(self, req, resp):
-        user = req.context['user']
-        if not user or not user['is_admin']:
-            raise exceptions.HTTPForbiddenError("Invalid admin key")
         data = req.context['doc']
 
         required = ['app', 'description']
@@ -19,11 +17,13 @@ class Register(object):
             if field not in data.keys():
                 raise exceptions.HTTPMissingParamError(field)
 
-        user = User.new(app=data['app'], desc=data['desc'])
+        user = User.new(app=data['app'], desc=data['description'])
+
+        # exceptions will be handled by falcon
+        utils.create_db_user(user.user, user.pswd)
         with LOCAL_CONN.new_session() as session:
-            utils.create_db_user(user.user, user.pswd)
-            # TODO: success check
             session.add(user)
 
+        resp.context['result'] = { 'result': 'ok' }
         resp.status = falcon.HTTP_201
 
