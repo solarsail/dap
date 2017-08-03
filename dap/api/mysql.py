@@ -7,10 +7,13 @@ from dap.user import user_db_engine
 log = logging.getLogger(__name__)
 
 
-def _select(engine, table, id=None):
+def _select(engine, table, id=None, columns=None):
     where = " WHERE id={}".format(id) if id else ""
-    query = "SELECT * FROM {}{}".format(table, where)
-    columns = engine.columns(table)
+    if not columns:
+        columns = engine.columns(table)
+
+    sc = ','.join(columns) if type(columns) == list else columns
+    query = "SELECT {} FROM {}{}".format(sc, table, where)
     with engine.new_session() as conn:
         result = conn.execute(query).fetchall()
 
@@ -21,8 +24,10 @@ class RDBTableAccess(object):
     def on_get(self, req, resp, table):
         """Retrieve the entire table."""
         user = req.context['user']
+        columns = req.params['column'] if 'column' in req.params else None
+        log.info(req.params)
         engine = user_db_engine(user)
-        result = _select(engine, table)
+        result = _select(engine, table, columns=columns)
 
         log.info("user [{}]: get table [{}]".format(user, table))
         resp.context['result'] = { 'result': 'ok', 'data': result }
@@ -49,8 +54,9 @@ class RDBRowAccess(object):
     def on_get(self, req, resp, table, id):
         """Retrieve a single row by id."""
         user = req.context['user']
+        columns = req.params['column'] if 'column' in req.params else None
         engine = user_db_engine(user)
-        result = _select(engine, table, id)
+        result = _select(engine, table, id=id, columns=columns)
 
         log.info("user [{}]: get row with id [{}] from table [{}]".format(user, id, table))
         resp.context['result'] = { 'result': 'ok', 'data': result }

@@ -39,6 +39,11 @@ class DBEngine(object):
         columns = inspector.get_columns(table)
         return [c['name'] for c in columns]
 
+    def tables(self, db):
+        inspector = inspect(self.engine)
+        tables = inspector.get_table_names(db)
+        return tables
+
 
 _db_cfg = CONF['db']
 LOCAL_CONN = DBEngine(_db_cfg['username'], _db_cfg['password'], 'dapadmin')

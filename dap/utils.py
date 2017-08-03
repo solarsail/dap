@@ -14,6 +14,7 @@ log = logging.getLogger(__name__)
 
 
 def init_superuser():
+    """Initializes the admin user."""
     user = User.new(app="__dap_admin", desc="Data access platform", is_admin=True)
     key = user.issue_key()
     print("ADMIN KEY: {}".format(key))
@@ -22,12 +23,13 @@ def init_superuser():
 
 
 def create_db_user(user, pswd):
+    """Creates a user in MySQL."""
     conn = LOCAL_CONN.connect()
     conn.execute("CREATE USER '{}'@'localhost' IDENTIFIED BY '{}'".format(user, pswd))
     conn.close()
 
 
-class Logger(object):                                                                                                                                                                                             
+class Logger(object):
     """Middleware class for request/response logging."""
     def process_request(self, req, resp):
         """Logs incoming requests.
@@ -35,12 +37,10 @@ class Logger(object):
         Args:
             see falcon documentation.
         """
-        if req.path == '/v1/heartbeat':
-            return
-
         rid = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8)) # a random request id
-        req.context['_rid'] = rid 
-        log.info("**REQUEST**  [{}] from: [{}], route: {}, content: {}".format(rid, req.remote_addr, req.path, req.context['doc']))
+        req.context['_rid'] = rid
+        content = req.context['doc'] if 'doc' in req.context else None
+        log.info("**REQUEST**  [{}] from: [{}], route: {}, content: {}".format(rid, req.remote_addr, req.path, content))
 
     def process_response(self, req, resp, resource, req_succeeded):
         """Logs responses.
@@ -48,9 +48,6 @@ class Logger(object):
         Args:
             see falcon documentation.
         """
-        if req.path == '/v1/heartbeat':
-            return
-
         # `resp.body` is not translated from `context` yet if no exception is raised.
         content = resp.context['result'] if req_succeeded else resp.body
         log.info("**RESPONSE** [{}] content: {}, succeeded: {}".format(
@@ -85,6 +82,11 @@ class RequireAuth(object):
             raise exceptions.HTTPForbiddenError("Invalid key")
 
 
+def _match_route(path, root):
+    root = '/' + root
+    return path.startswith(root)
+
+
 class AdminCheck(object):
     """Middleware class for Admin check.
 
@@ -92,7 +94,7 @@ class AdminCheck(object):
         admin (list): suffixes of paths which require admin privilege.
     """
 
-    admin = ['register']
+    admin = ['register', 'privilege', 'key']
 
     def process_resource(self, req, resp, resource, params):
         """Validates the token and insert the payload into the request.
@@ -104,7 +106,7 @@ class AdminCheck(object):
         require_admin = False
 
         for item in AdminCheck.admin:
-            if req.path.endswith(item):
+            if _match_route(req.path, item):
                 require_admin = True
                 break
 
@@ -164,6 +166,8 @@ def handle_db_exception(ex, req, resp, params):
         raise exceptions.HTTPBadRequestError(description)
     elif code == 1146:
         raise exceptions.HTTPBadRequestError(description)
+    elif code == 1142:
+        raise exceptions.HTTPForbiddenError("Insufficent privileges")
     else:
         description = ('Unspecified error')
         raise exceptions.HTTPForbiddenError(description)

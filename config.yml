@@ -2,5 +2,5 @@ db:
     username: dapadmin
     password: 123qwe
 
-token:
-    secret: a4b559e3afad5d1298447001f8005012
+shared_db:
+    name: sdata

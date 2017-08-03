@@ -72,6 +72,31 @@ class User(Base):
             log.exception(ex)
             return None
 
+    @classmethod
+    def modify_user(cls, session, app, func):
+        try:
+            user = session.query(cls).filter_by(app=app).one()
+            if func:
+                ret = func(user)
+                return ret
+        except exc.NoResultFound:
+            raise exceptions.HTTPBadRequestError("app not exist")
+
+    @classmethod
+    def get_user(cls, session, app):
+        try:
+            user = session.query(cls).filter_by(app=app).one()
+            return {
+                'id': user.id,
+                'app': user.app,
+                'desc': user.desc,
+                'user': user.user,
+                'pswd': user.pswd,
+                'is_admin': user.is_admin,
+            }
+        except exc.NoResultFound:
+            raise exceptions.HTTPBadRequestError("app not exist")
+
     def issue_key(self):
         """Issues an api key for this app."""
         key = generate_random_str()
@@ -89,7 +114,7 @@ def user_db_engine(user):
     Args:
         user(dict): user dict obtained from request context.
     """
-    dbuser = user['name']
+    dbuser = user['user']
     if dbuser not in _user_engines:
         engine = DBEngine(dbuser, user['pswd'], CONF['shared_db']['name'])
         _user_engines[dbuser] = engine
