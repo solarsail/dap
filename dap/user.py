@@ -13,13 +13,22 @@ log = logging.getLogger(__name__)
 
 
 def generate_random_str(length=32):
-    """Generates a random string of a specified length."""
+    """Generates a random string of a specified length.
+
+    Contains only ASCII letters (upper & lower cases) and digits.
+    """
     chars = string.ascii_letters + string.digits
     return ''.join(random.choice(chars) for _ in range(length))
 
 
 
 class User(Base):
+    """ORM class of DB table `user`.
+
+    This effectively represents a client application (app),
+    but named `User` for some historical reason.
+    FIXME: Needs a rename.
+    """
     __tablename__ = 'user'
 
     id = Column(Integer, primary_key=True)
@@ -45,10 +54,14 @@ class User(Base):
 
     @classmethod
     def auth(cls, session, key):
-        """
-        Perfroms user authentication.
+        """Perfroms app authentication.
 
-        Returns the user object if success, None otherwise.
+        Args:
+            session(object): a valid sqlalchemy session.
+            key(str):        the api key.
+
+        Returns:
+            A user dict if success, None otherwise.
         """
         try:
             users = session.query(cls).all()
@@ -74,6 +87,24 @@ class User(Base):
 
     @classmethod
     def modify_user(cls, session, app, func):
+        """Loads the user which match the app name, and
+        updates the user in both object representation and in DB.
+
+        Args:
+            app(str):       app name
+            func(function): a function or lambda which has the following form:
+                            ```
+                            def func(user)
+                            ```
+                            If the function has a return value, it will be
+                            returned by this method.
+
+        Returns:
+            Whatever `func` returns.
+
+        Raises:
+            HTTPBadRequestError: if app doesn't match any record in DB.
+        """
         try:
             user = session.query(cls).filter_by(app=app).one()
             if func:
@@ -84,6 +115,14 @@ class User(Base):
 
     @classmethod
     def get_user(cls, session, app):
+        """Loads the user which match the app name.
+
+        Returns:
+            A user dict if the app matches.
+
+        Raises:
+            HTTPBadRequestError: if app doesn't match any record in DB.
+        """
         try:
             user = session.query(cls).filter_by(app=app).one()
             return {
@@ -98,14 +137,20 @@ class User(Base):
             raise exceptions.HTTPBadRequestError("app not exist")
 
     def issue_key(self):
-        """Issues an api key for this app."""
+        """Issues an api key for this app.
+
+        Will hash the key and save into DB for future authentication purpose.
+
+        Returns:
+            The original key (not hashed). The application should memorize this key.
+        """
         key = generate_random_str()
         hashed_key = pbkdf2_sha256.hash(key)
         self.key = hashed_key
         return key
 
 
-_user_engines = {} # DB connection cache
+_user_engines = {} # DB engine cache
 
 def user_db_engine(user):
     """
@@ -113,6 +158,10 @@ def user_db_engine(user):
 
     Args:
         user(dict): user dict obtained from request context.
+
+    Returns:
+        The DB engine associated to the user/app (which operates on behalf
+        of the DB user assigned to the app).
     """
     dbuser = user['user']
     if dbuser not in _user_engines:

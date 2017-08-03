@@ -117,6 +117,7 @@ class AdminCheck(object):
 
 
 class RequireJSON(object):
+    """Deny requests without 'Content-type:application/json' header."""
     def process_request(self, req, resp):
         if req.method in ('POST', 'PUT'):
             if not req.content_type or 'application/json' not in req.content_type:
@@ -125,6 +126,11 @@ class RequireJSON(object):
 
 
 class JSONTranslator(object):
+    """Serialize and Deserialize json in response and request.
+    
+    Deserialize json content and insert into req.context['doc'];
+    Serialize object in resp.context['result'] into the response.
+    """
     def process_request(self, req, resp):
         # req.stream corresponds to the WSGI wsgi.input environ variable,
         # and allows you to read bytes from the request body.
