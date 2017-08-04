@@ -31,9 +31,21 @@ def _select(engine, table, id=None, columns=None, start=None, limit=None):
     return [dict(zip(columns, r)) for r in result]
 
 
+class RDBTableCount(object):
+    def on_get(self, req, resp, table):
+        """Get the number of rows."""
+        user = req.context['user']
+        engine = user_db_engine(user)
+        query = "SELECT COUNT(id) FROM {}".format(table)
+        with engine.new_session() as session:
+            count = session.execute(query).fetchone()[0]
+
+        resp.context['result'] = { 'result': 'ok', 'count': count }
+        resp.status = falcon.HTTP_200
+        
 class RDBTableAccess(object):
     def on_get(self, req, resp, table):
-        """Retrieve the entire table."""
+        """Retrieve the entire table, with or without pagination."""
         user = req.context['user']
         columns = req.params['column'] if 'column' in req.params else None # columns to query
         start = req.params['start'] if 'start' in req.params else None     # pagination: start id
