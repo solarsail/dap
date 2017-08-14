@@ -2,11 +2,13 @@ import logging
 import falcon
 
 from dap.user import user_db_engine
+from dap.utils import do_cprofile
 
 
 log = logging.getLogger(__name__)
 
 
+#@do_cprofile
 def _select(engine, table, id=None, columns=None, start=None, limit=None):
     if start and limit and start.isdigit() and limit.isdigit():
         where = " WHERE id >= {} LIMIT {}".format(start, limit)
@@ -32,6 +34,7 @@ def _select(engine, table, id=None, columns=None, start=None, limit=None):
 
 
 class RDBTableCount(object):
+    #@do_cprofile
     def on_get(self, req, resp, table):
         """Get the number of rows."""
         user = req.context['user']
@@ -45,6 +48,7 @@ class RDBTableCount(object):
 
 
 class RDBTableAccess(object):
+    #@do_cprofile
     def on_get(self, req, resp, table):
         """Retrieve the entire table, with or without pagination."""
         user = req.context['user']

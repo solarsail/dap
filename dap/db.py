@@ -8,6 +8,9 @@ from dap.config import CONF
 
 Base = declarative_base()
 
+_column_name_cache = {}
+
+
 class DBEngine(object):
     def __init__(self, user, password, db, host='127.0.0.1', port=3306):
         conn_str = 'mysql://{}:{}@{}:{}'.format(user, password, host, port)
@@ -35,9 +38,14 @@ class DBEngine(object):
 
 
     def columns(self, table):
-        inspector = inspect(self.engine)
-        columns = inspector.get_columns(table)
-        return [c['name'] for c in columns]
+        if table in _column_name_cache:
+            return _column_name_cache[table]
+        else:
+            inspector = inspect(self.engine)
+            columns = inspector.get_columns(table)
+            column_names = [c['name'] for c in columns]
+            _column_name_cache[table] = column_names
+            return column_names
 
     def tables(self, db):
         inspector = inspect(self.engine)

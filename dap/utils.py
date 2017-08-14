@@ -3,6 +3,8 @@ import logging
 import random
 import string
 import falcon
+import cProfile
+import pstats
 
 from sqlalchemy import exc
 from dap.db import LOCAL_CONN
@@ -11,6 +13,21 @@ from dap import exceptions
 
 
 log = logging.getLogger(__name__)
+
+
+def do_cprofile(func):
+    def profiled_func(*args, **kwargs):
+        profile = cProfile.Profile()
+        try:
+            profile.enable()
+            result = func(*args, **kwargs)
+            profile.disable
+            return result
+        finally:
+            #profile.dump_stats("profile.log")
+            ps = pstats.Stats(profile).sort_stats("cumulative")
+            ps.print_stats(.03)
+    return profiled_func
 
 
 def init_superuser():
@@ -131,6 +148,7 @@ class JSONTranslator(object):
     Deserialize json content and insert into req.context['doc'];
     Serialize object in resp.context['result'] into the response.
     """
+    @do_cprofile
     def process_request(self, req, resp):
         # req.stream corresponds to the WSGI wsgi.input environ variable,
         # and allows you to read bytes from the request body.
