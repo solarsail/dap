@@ -2,7 +2,7 @@ import logging
 import falcon
 
 from dap.user import user_db_engine
-from dap.utils import do_cprofile
+#from dap.utils import do_cprofile
 
 
 log = logging.getLogger(__name__)
@@ -55,7 +55,6 @@ class RDBTableAccess(object):
         columns = req.params['column'] if 'column' in req.params else None # columns to query
         start = req.params['start'] if 'start' in req.params else None     # pagination: start id
         limit = req.params['limit'] if 'limit' in req.params else None     # pagination: row limit
-        log.info(req.params)
         engine = user_db_engine(user)
         result = _select(engine, table, columns=columns, start=start, limit=limit)
 

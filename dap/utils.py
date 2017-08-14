@@ -148,7 +148,7 @@ class JSONTranslator(object):
     Deserialize json content and insert into req.context['doc'];
     Serialize object in resp.context['result'] into the response.
     """
-    @do_cprofile
+    #@do_cprofile
     def process_request(self, req, resp):
         # req.stream corresponds to the WSGI wsgi.input environ variable,
         # and allows you to read bytes from the request body.

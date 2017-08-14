@@ -1,4 +1,4 @@
-falcon==1.1.0
+falcon==1.2.0
 MySQL-python==1.2.5
 passlib==1.7.1
 pytest==3.2.0

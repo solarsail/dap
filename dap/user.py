@@ -21,6 +21,7 @@ def generate_random_str(length=32):
     return ''.join(random.choice(chars) for _ in range(length))
 
 
+_user_cache = {}
 
 class User(Base):
     """ORM class of DB table `user`.
@@ -63,13 +64,16 @@ class User(Base):
         Returns:
             A user dict if success, None otherwise.
         """
+        if key in _user_cache:
+            return _user_cache[key]
+
         try:
             users = session.query(cls).all()
             for user in users:
                 if pbkdf2_sha256.verify(key, user.key):
                     # Cannot use user object outside the session scope,
                     # since the object has to be bound to a DB session.
-                    return {
+                    info = {
                         'id': user.id,
                         'app': user.app,
                         'desc': user.desc,
@@ -77,6 +81,8 @@ class User(Base):
                         'pswd': user.pswd,
                         'is_admin': user.is_admin,
                     }
+                    _user_cache[key] = info
+                    return info
 
             else:
                 log.warning("Invalid key: {}".format(key))

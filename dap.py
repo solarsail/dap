@@ -4,6 +4,7 @@ import logging
 import logging.config
 import falcon
 
+#from werkzeug.contrib.profiler import ProfilerMiddleware
 from sqlalchemy import exc
 from dap.utils import RequireJSON, JSONTranslator, Logger, RequireAuth, AdminCheck, handle_db_exception, handle_sql_exception
 from dap import api, logconf
@@ -23,3 +24,4 @@ app.add_route("/key/{app}", api.key_mgmt)
 app.add_route("/data/{table}", api.mysql_table)
 app.add_route("/data/{table}/{id}", api.mysql_row)
 app.add_route("/count/{table}", api.mysql_count)
+#app = ProfilerMiddleware(app, sort_by=("cumulative",), restrictions=(.1,))
