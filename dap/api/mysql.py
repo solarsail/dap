@@ -18,7 +18,7 @@ def _select(engine, table, id=None, columns=None, start=None, limit=None):
     if not columns:
         columns = engine.columns(table)
 
-    sc = ','.join(columns) if type(columns) == list else columns
+    sc = ','.join("`{}`".format(c) for c in columns) if type(columns) == list else columns
     if ';' in sc:
         raise exceptions.HTTPBadRequestError("Invalid columns: {}".format(sc))
     if ';' in table:
@@ -42,7 +42,8 @@ class RDBTableCount(object):
 
         resp.context['result'] = { 'result': 'ok', 'count': count }
         resp.status = falcon.HTTP_200
-        
+
+
 class RDBTableAccess(object):
     def on_get(self, req, resp, table):
         """Retrieve the entire table, with or without pagination."""
@@ -60,19 +61,30 @@ class RDBTableAccess(object):
         resp.status = falcon.HTTP_200
 
     def on_post(self, req, resp, table):
-        """Create a new row."""
+        """Create new row(s)."""
         user = req.context['user']
-        pairs = req.context['doc']
-        keys = ','.join(pairs.keys())
-        values = ','.join(["'{}'".format(v) for v in pairs.values()])
-        engine = user_db_engine(user)
-        query = "INSERT INTO {} ({}) VALUES ({})".format(table, keys, values)
+        try:
+            data = req.context['doc']
+            keys = ','.join(["`{}`".format(c) for c in data['columns']])
+            values = data['values']
+        except KeyError:
+            raise HTTPBadRequestError("Missing columns or values")
 
-        with engine.new_session() as conn:
-            result = conn.execute(query)
-            id = result.lastrowid
+        if values:
+            value_clause = []
+            for value in values:
+                value_clause.append(','.join(["'{}'".format(v) for v in value]))
+            values = ','.join(["({})".format(v) for v in value_clause])
+            engine = user_db_engine(user)
+            query = "INSERT INTO {} ({}) VALUES {}".format(table, keys, values)
 
-        resp.context['result'] = {'result': 'ok', 'id': id}
+            with engine.new_session() as conn:
+                result = conn.execute(query)
+                count = result.rowcount
+        else:
+            ids = []
+
+        resp.context['result'] = {'result': 'ok', 'count': count}
         resp.status = falcon.HTTP_201
 
 
@@ -92,7 +104,7 @@ class RDBRowAccess(object):
         """Update an existing row."""
         user = req.context['user']
         pairs = req.context['doc']
-        pairs = ["{}='{}'".format(k, v) for k, v in pairs.items()]
+        pairs = ["`{}`='{}'".format(k, v) for k, v in pairs.items()]
         pairs = ','.join(pairs)
         engine = user_db_engine(user)
         query = "UPDATE {} SET {} WHERE id={}".format(table, pairs, id)
