@@ -6,12 +6,12 @@ import falcon
 
 #from werkzeug.contrib.profiler import ProfilerMiddleware
 from sqlalchemy import exc
-from dap.utils import RequireJSON, JSONTranslator, Logger, RequireAuth, AdminCheck, handle_db_exception, handle_sql_exception
-from dap import api, logconf
+from sdap.utils import RequireJSON, JSONTranslator, Logger, RequireAuth, AdminCheck, handle_db_exception, handle_sql_exception
+from sdap import api, logconf
 
 
 logging.config.dictConfig(logconf.conf_dict)
-log = logging.getLogger('dap.main')
+log = logging.getLogger(__name__)
 
 app = falcon.API(middleware=[RequireJSON(), JSONTranslator(), Logger(), RequireAuth(), AdminCheck()])
 

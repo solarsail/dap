@@ -1,0 +1,3 @@
+include install.sh
+recursive-include etc *.yml *.ini *.service
+prune test

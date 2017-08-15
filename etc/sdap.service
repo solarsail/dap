@@ -1,0 +1,13 @@
+[Unit]
+Description=Shared Data Access Platform
+After=syslog.target
+
+[Service]
+ExecStart=/usr/sbin/uwsgi --ini /etc/sdap/uwsgi.ini
+Restart=on-failure
+Type=notify
+StandardError=syslog
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target

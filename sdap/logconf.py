@@ -17,7 +17,7 @@ conf_dict = {
         }
     },
     'loggers': {
-        'dap': {
+        'sdap': {
             'level': logging.DEBUG,
             'handlers': ['console']
         }

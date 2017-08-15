@@ -1,3 +1,0 @@
-- run `deploy.sh`
-- modify `install.py` as needed
-- run `install.py`

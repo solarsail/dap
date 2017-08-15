@@ -1,7 +1,7 @@
-from dap.api.mysql import RDBTableAccess, RDBRowAccess, RDBTableCount
-from dap.api.register import Register
-from dap.api.privilege import Privilege
-from dap.api.key_mgmt import KeyManagement
+from sdap.api.mysql import RDBTableAccess, RDBRowAccess, RDBTableCount
+from sdap.api.register import Register
+from sdap.api.privilege import Privilege
+from sdap.api.key_mgmt import KeyManagement
 
 mysql_table = RDBTableAccess()
 mysql_row = RDBRowAccess()

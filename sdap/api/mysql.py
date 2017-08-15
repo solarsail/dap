@@ -1,8 +1,8 @@
 import logging
 import falcon
 
-from dap.user import user_db_engine
-#from dap.utils import do_cprofile
+from sdap.user import user_db_engine
+#from sdap.utils import do_cprofile
 
 
 log = logging.getLogger(__name__)

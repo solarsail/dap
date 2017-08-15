@@ -5,8 +5,8 @@ import logging
 from passlib.hash import pbkdf2_sha256
 from sqlalchemy import Column, Integer, String, Boolean
 
-from dap.db import Base, DBEngine
-from dap.config import CONF
+from sdap.db import Base, DBEngine
+from sdap.config import CONF
 
 
 log = logging.getLogger(__name__)
@@ -115,6 +115,8 @@ class User(Base):
             user = session.query(cls).filter_by(app=app).one()
             if func:
                 ret = func(user)
+                if not user.key:
+                    _user_cache.pop(user.key, None)
                 return ret
         except exc.NoResultFound:
             raise exceptions.HTTPBadRequestError("app not exist")
@@ -170,8 +172,9 @@ def user_db_engine(user):
         of the DB user assigned to the app).
     """
     dbuser = user['user']
+    conf = CONF['db']
     if dbuser not in _user_engines:
-        engine = DBEngine(dbuser, user['pswd'], CONF['shared_db']['name'])
+        engine = DBEngine(dbuser, user['pswd'], conf['shared_db'], conf['addr'], conf['port'])
         _user_engines[dbuser] = engine
 
     return _user_engines[dbuser]

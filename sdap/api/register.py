@@ -1,9 +1,9 @@
 import logging
 import falcon
 
-from dap import exceptions, utils
-from dap.user import User
-from dap.db import LOCAL_CONN
+from sdap import exceptions, utils
+from sdap.user import User
+from sdap.db import LOCAL_CONN
 
 
 log = logging.getLogger(__name__)

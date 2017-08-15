@@ -1,6 +1,0 @@
-db:
-    username: dapadmin
-    password: 123qwe
-
-shared_db:
-    name: sdata

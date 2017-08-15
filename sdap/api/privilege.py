@@ -1,20 +1,20 @@
 import logging
 import falcon
 
-import dap.utils
+import sdap.utils
 
 from sqlalchemy.orm import exc
-from dap import exceptions
-from dap.user import User
-from dap.db import LOCAL_CONN
-from dap.config import CONF, shared_db_name
+from sdap import exceptions
+from sdap.user import User
+from sdap.db import LOCAL_CONN
+from sdap.config import CONF, shared_db_name
 
 
 log = logging.getLogger(__name__)
 
 def _parse_priv(sql_result):
-    # TODO: merge overlaped privileges on columns
-    db = CONF['shared_db']['name']
+    # TODO: merge overlaped privileges on columns?
+    db = CONF['db']['shared_db']
     tables = LOCAL_CONN.tables(db)
     priv = { table: [] for table in tables }
     for grant in sql_result:
@@ -40,7 +40,8 @@ class Privilege(object):
             user = User.get_user(session, app)
 
             dbuser = user['user']
-            result = session.execute("SHOW GRANTS FOR '{}'@'localhost'".format(dbuser)).fetchall()
+            #result = session.execute("SHOW GRANTS FOR '{}'@'localhost'".format(dbuser)).fetchall()
+            result = session.execute("SHOW GRANTS FOR '{}'@'%'".format(dbuser)).fetchall()
             priv = _parse_priv(result)
 
         resp.status = falcon.HTTP_200
@@ -78,6 +79,8 @@ class Privilege(object):
                     priv_clause = ','.join(grant)
                     column_clause = "" if column == "_all_" else "({})".format(column)
                     sql = "GRANT {} ON {}.{} {} TO '{}'@'localhost'".format(priv_clause, db, table, column_clause, dbuser) # FIXME escape the query
+                    sqls.append(sql)
+                    sql = "GRANT {} ON {}.{} {} TO '{}'@'%'".format(priv_clause, db, table, column_clause, dbuser) # FIXME escape the query
                     sqls.append(sql)
         except KeyError as e:
             raise exceptions.HTTPMissingParamError(e)

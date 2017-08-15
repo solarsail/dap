@@ -7,9 +7,9 @@ import cProfile
 import pstats
 
 from sqlalchemy import exc
-from dap.db import LOCAL_CONN
-from dap.user import User
-from dap import exceptions
+from sdap.db import LOCAL_CONN
+from sdap.user import User
+from sdap import exceptions
 
 
 log = logging.getLogger(__name__)
@@ -43,6 +43,7 @@ def create_db_user(user, pswd):
     """Creates a user in MySQL."""
     conn = LOCAL_CONN.connect()
     conn.execute("CREATE USER '{}'@'localhost' IDENTIFIED BY '{}'".format(user, pswd))
+    conn.execute("CREATE USER '{}'@'%' IDENTIFIED BY '{}'".format(user, pswd))
     conn.close()
 
 
