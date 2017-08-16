@@ -68,6 +68,10 @@ class Logger(object):
         """
         # `resp.body` is not translated from `context` yet if no exception is raised.
         content = resp.context['result'] if req_succeeded else resp.body
+        if 'data' in content and len(content['data']) > 5:
+            remain = len(content['data']) - 5
+            content['data'] = content['data'][:5]
+            content['data'].append("...({} records omitted)".format(remain))
         log.info("**RESPONSE** [{}] content: {}, succeeded: {}".format(
             req.context['_rid'], content, req_succeeded))
 
