@@ -8,7 +8,7 @@ setup(
     packages = ["sdap", "sdap.api"],
     url = "https://github.com/solarsail/dap",
     description = "Shared data access platform",
-    install_requires = ["falcon", "MySQL-python", "SQLAlchemy", "PyYAML", "passlib"],
+    install_requires = ["falcon", "MySQL-python", "SQLAlchemy", "PyYAML", "passlib", "redis"],
     data_files = [
         ("/etc/sdap", ["etc/uwsgi.ini", "etc/config.yml"]),
         ("/etc/systemd/system", ["etc/sdap.service"]),
