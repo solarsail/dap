@@ -7,9 +7,9 @@ import cProfile
 import pstats
 
 from sqlalchemy import exc
+from sdap import exceptions, cache
 from sdap.db import LOCAL_CONN
 from sdap.user import User
-from sdap import exceptions
 
 
 log = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ class Logger(object):
         """
         rid = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8)) # a random request id
         req.context['_rid'] = rid
-        content = req.context['doc'] if 'doc' in req.context else None
+        content = req.context['body']
         log.info("**REQUEST**  [{}] from: [{}], route: {}, content: {}".format(rid, req.remote_addr, req.path, content))
 
     def process_response(self, req, resp, resource, req_succeeded):
@@ -66,12 +66,10 @@ class Logger(object):
         Args:
             see falcon documentation.
         """
-        # `resp.body` is not translated from `context` yet if no exception is raised.
-        content = resp.context['result'] if req_succeeded else resp.body
-        if 'data' in content and len(content['data']) > 5:
-            remain = len(content['data']) - 5
-            content['data'] = content['data'][:5]
-            content['data'].append("...({} records omitted)".format(remain))
+        content = resp.body
+        if len(content) > 120:
+            content = "{} ...".format(content[:120])
+
         log.info("**RESPONSE** [{}] content: {}, succeeded: {}".format(
             req.context['_rid'], content, req_succeeded))
 
@@ -147,6 +145,12 @@ class RequireJSON(object):
                     'This API only supports requests encoded as JSON.')
 
 
+class StreamReader(object):
+    def process_request(self, req, resp):
+        body = req.stream.read(req.content_length or 0)
+        req.context['body'] = body
+
+
 class JSONTranslator(object):
     """Serialize and Deserialize json in response and request.
     
@@ -163,7 +167,7 @@ class JSONTranslator(object):
             # Nothing to do
             return
 
-        body = req.stream.read()
+        body = req.context['body']
         if not body:
             raise falcon.HTTPBadRequest('Empty request body',
                                         'A valid JSON document is required.')
@@ -183,6 +187,15 @@ class JSONTranslator(object):
             return
 
         resp.body = json.dumps(resp.context['result'])
+
+
+class ResponseCache(object):
+    def process_response(self, req, resp, resource):
+        if 'cache_hit' in resp.context:
+            resp.body = cache.cached_query(resp.context['cache_key'])
+            log.info("cache hit, key: {}".format(resp.context['cache_key']))
+        elif 'cache_miss' in resp.context:
+            cache.set_query(resp.context['cache_key'], resp.body)
 
 
 def handle_db_exception(ex, req, resp, params):

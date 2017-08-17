@@ -6,14 +6,14 @@ import falcon
 
 #from werkzeug.contrib.profiler import ProfilerMiddleware
 from sqlalchemy import exc
-from sdap.utils import RequireJSON, JSONTranslator, Logger, RequireAuth, AdminCheck, handle_db_exception, handle_sql_exception
+from sdap.utils import *
 from sdap import api, logconf
 
 
 logging.config.dictConfig(logconf.conf_dict)
 log = logging.getLogger(__name__)
 
-app = falcon.API(middleware=[RequireJSON(), JSONTranslator(), Logger(), RequireAuth(), AdminCheck()])
+app = falcon.API(middleware=[RequireJSON(), StreamReader(), Logger(), ResponseCache(), JSONTranslator(), RequireAuth(), AdminCheck()])
 
 app.add_error_handler(exc.DBAPIError, handle_db_exception)
 app.add_error_handler(exc.InvalidRequestError, handle_sql_exception)

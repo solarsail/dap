@@ -1,6 +1,7 @@
 import logging
 import falcon
 
+from sdap import cache
 from sdap.user import user_db_engine
 #from sdap.utils import do_cprofile
 
@@ -33,6 +34,14 @@ def _select(engine, table, id=None, columns=None, start=None, limit=None):
     return [dict(zip(columns, r)) for r in result]
 
 
+def _make_key(engine, table, columns, start, limit):
+    if not columns:
+        columns = engine.columns(table)
+    columns = ','.join("`{}`".format(c) for c in sorted(columns)) if type(columns) == list else columns
+    key = "{}|{}|{}|{}".format(table, columns, start, limit)
+    return key
+
+
 class RDBTableCount(object):
     #@do_cprofile
     def on_get(self, req, resp, table):
@@ -55,11 +64,21 @@ class RDBTableAccess(object):
         columns = req.params['column'] if 'column' in req.params else None # columns to query
         start = req.params['start'] if 'start' in req.params else None     # pagination: start id
         limit = req.params['limit'] if 'limit' in req.params else None     # pagination: row limit
+
         engine = user_db_engine(user)
+        key = _make_key(engine, table, columns, start, limit)
+        resp.context['cache_key'] = key
+        if cache.contains_query(key):
+            resp.context['cache_hit'] = True
+            resp.status = falcon.HTTP_200
+            return
+
         result = _select(engine, table, columns=columns, start=start, limit=limit)
 
         pagi = " start from id {} limit {}".format(start, limit) if start and limit else ""
         log.info("user [{}]: get table [{}]{}".format(user['user'], table, pagi))
+
+        resp.context['cache_miss'] = True
         resp.context['result'] = { 'result': 'ok', 'data': result }
         resp.status = falcon.HTTP_200
 
