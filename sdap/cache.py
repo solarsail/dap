@@ -16,8 +16,9 @@ def cached_query(query):
     cached = _conn.get(query)
     return cached
 
-def invalidate_query(query):
-    _conn.delete(query)
+def invalidate_query_pattern(pattern):
+    keys = [key for key in _conn.scan_iter(match=pattern)]
+    _conn.delete(*keys)
 
 def set_query(query, records):
     _conn.set(query, records)

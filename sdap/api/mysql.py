@@ -103,8 +103,9 @@ class RDBTableAccess(object):
             with engine.new_session() as conn:
                 result = conn.execute(query)
                 count = result.rowcount
+            cache.invalidate_query_pattern("{}|*".format(table))
         else:
-            ids = []
+            count = 0
 
         resp.context['result'] = {'result': 'ok', 'count': count}
         resp.status = falcon.HTTP_201
