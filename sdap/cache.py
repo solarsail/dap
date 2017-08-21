@@ -18,7 +18,8 @@ def cached_query(query):
 
 def invalidate_query_pattern(pattern):
     keys = [key for key in _conn.scan_iter(match=pattern)]
-    _conn.delete(*keys)
+    if keys:
+        _conn.delete(*keys)
 
 def set_query(query, records):
     _conn.set(query, records)
