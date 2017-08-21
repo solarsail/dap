@@ -16,6 +16,7 @@ class DBEngine(object):
         conn_str = 'mysql://{}:{}@{}:{}'.format(user, password, host, port)
         if db:
             conn_str = '/'.join([conn_str, db])
+        conn_str = '?'.join([conn_str, "charset=utf8"])
         self.engine = create_engine(conn_str)
         self.session = sessionmaker(bind=self.engine)
 
