@@ -145,7 +145,7 @@ class RDBRowAccess(object):
             result = conn.execute(query)
 
         resp.context['result'] = {'result': 'ok'}
-        resp.status = falcon.HTTP_201
+        resp.status = falcon.HTTP_200
 
     def on_delete(self, req, resp, table, id):
         """Delete an existing row."""
