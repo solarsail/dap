@@ -136,13 +136,15 @@ class RDBRowAccess(object):
         """Update an existing row."""
         user = req.context['user']
         pairs = req.context['doc']
-        pairs = ["`{}`='{}'".format(k, v) for k, v in pairs.items()]
-        pairs = ','.join(pairs)
+        keys = pairs.keys()
+        set_clause = ["`{}`=:{}".format(k, k) for k in keys]
+        set_clause = ','.join(set_clause)
         engine = user_db_engine(user)
-        query = "UPDATE {} SET {} WHERE id={}".format(table, pairs, id)
+        query = "UPDATE {} SET {} WHERE id=:id".format(table, set_clause)
+        pairs['id'] = id
 
         with engine.new_session() as conn:
-            result = conn.execute(query)
+            result = conn.execute(query, pairs)
 
         resp.context['result'] = {'result': 'ok'}
         resp.status = falcon.HTTP_200
@@ -151,10 +153,10 @@ class RDBRowAccess(object):
         """Delete an existing row."""
         user = req.context['user']
         engine = user_db_engine(user)
-        query = "DELETE FROM {} WHERE id={}".format(table, id)
+        query = "DELETE FROM {} WHERE id=:id".format(table)
 
         with engine.new_session() as conn:
-            result = conn.execute(query)
+            result = conn.execute(query, { "id": id })
 
         resp.context['result'] = {'result': 'ok'}
         resp.status = falcon.HTTP_200
