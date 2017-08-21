@@ -211,7 +211,7 @@ def handle_db_exception(ex, req, resp, params):
     elif code == 1142:
         raise exceptions.HTTPForbiddenError("Insufficent privileges")
     else:
-        description = ('Unspecified error')
+        description = ('Unspecified DB error')
         raise exceptions.HTTPServerError(description)
 
 def handle_sql_exception(ex, req, resp, params):
@@ -221,6 +221,8 @@ def handle_sql_exception(ex, req, resp, params):
     elif (type(ex) == exc.StatementError):
         log.warn("invalid request data: {}".format(params))
         raise exceptions.HTTPBadRequestError("Invalid request data")
+    elif ex.orig[0] == 1142:
+        raise exceptions.HTTPForbiddenError("Insufficent privileges")
     else:
         log.exception(ex)
-        raise exceptions.HTTPServerError("Unspecified error")
+        raise exceptions.HTTPServerError("Unspecified SQL error")
