@@ -67,7 +67,7 @@ class Logger(object):
             see falcon documentation.
         """
         content = resp.body
-        if len(content) > 120:
+        if req_succeeded and len(content) > 120:
             content = "{} ...".format(content[:120])
 
         log.info("**RESPONSE** [{}] content: {}, succeeded: {}".format(
@@ -212,12 +212,15 @@ def handle_db_exception(ex, req, resp, params):
         raise exceptions.HTTPForbiddenError("Insufficent privileges")
     else:
         description = ('Unspecified error')
-        raise exceptions.HTTPForbiddenError(description)
+        raise exceptions.HTTPServerError(description)
 
 def handle_sql_exception(ex, req, resp, params):
     if (type(ex) == exc.NoSuchTableError):
         log.warn("table not exist: {}".format(params))
         raise exceptions.HTTPBadRequestError("Table not exist")
+    elif (type(ex) == exc.StatementError):
+        log.warn("invalid request data: {}".format(params))
+        raise exceptions.HTTPBadRequestError("Invalid request data")
     else:
         log.exception(ex)
-        raise exceptions.HTTPBadRequestError("Unspecified error")
+        raise exceptions.HTTPServerError("Unspecified error")
