@@ -3,6 +3,7 @@ import falcon
 
 from sdap import cache
 from sdap.user import user_db_engine
+from sqlalchemy.sql import text
 #from sdap.utils import do_cprofile
 
 
@@ -11,13 +12,6 @@ log = logging.getLogger(__name__)
 
 #@do_cprofile
 def _select(engine, table, id=None, columns=None, start=None, limit=None):
-    if start and limit and start.isdigit() and limit.isdigit():
-        where = " WHERE id >= {} LIMIT {}".format(start, limit)
-    elif id and id.isdigit():
-        where = " WHERE id={}".format(id)
-    else:
-        where = ""
-
     if not columns:
         columns = engine.columns(table)
 
@@ -27,9 +21,21 @@ def _select(engine, table, id=None, columns=None, start=None, limit=None):
     if ';' in table:
         raise exceptions.HTTPBadRequestError("Invalid table: {}".format(table))
 
-    query = "SELECT {} FROM {}{}".format(sc, table, where)
+    query = "SELECT {} FROM {}".format(sc, table)
+    sql_where = "WHRER id = :id"
+    sql_page = "WHERE id >= :start LIMIT :limit"
+    values = {}
+
+    if start and limit and start.isdigit() and limit.isdigit():
+        query = text(' '.join([query, sql_page]))
+        values["start"] = start
+        values["limit"] = limit
+    elif id and id.isdigit():
+        query = text(' '.join([query, sql_where]))
+        values["id"] = id
+
     with engine.new_session() as conn:
-        result = conn.execute(query).fetchall()
+        result = conn.execute(query, values).fetchall()
 
     return [dict(zip(columns, r)) for r in result]
 
@@ -87,21 +93,24 @@ class RDBTableAccess(object):
         user = req.context['user']
         try:
             data = req.context['doc']
-            keys = ','.join(["`{}`".format(c) for c in data['columns']])
+            columns = data['columns']
+            keys = ','.join(["`{}`".format(c) for c in columns])
+            values_param = ','.join([":{}".format(c) for c in columns])
             values = data['values']
         except KeyError:
             raise HTTPBadRequestError("Missing columns or values")
 
         if values:
-            value_clause = []
+            values_input = []
             for value in values:
-                value_clause.append(','.join(["'{}'".format(v) for v in value]))
-            values = ','.join(["({})".format(v) for v in value_clause])
+                #value_clause.append(','.join(["'{}'".format(v) for v in value]))
+                values_input.append(dict(zip(columns, value)))
+            #values = ','.join(["({})".format(v) for v in value_clause])
             engine = user_db_engine(user)
-            query = "INSERT INTO {} ({}) VALUES {}".format(table, keys, values)
+            query = "INSERT INTO {} ({}) VALUES ({})".format(table, keys, values_param)
 
             with engine.new_session() as conn:
-                result = conn.execute(query)
+                result = conn.execute(query, values_input)
                 count = result.rowcount
             cache.invalidate_query_pattern("{}|*".format(table))
         else:
