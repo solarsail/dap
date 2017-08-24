@@ -12,6 +12,15 @@ log = logging.getLogger(__name__)
 
 #@do_cprofile
 def _select(engine, table, id=None, columns=None, start=None, limit=None):
+    paged = False
+    if start and limit:
+        try:
+            start = int(start)
+            limit = int(limit)
+            paged = True
+        except ValueError:
+            raise exceptions.HTTPBadRequestError("Invalid start or limit parameter")
+
     if not columns:
         columns = engine.columns(table)
 
@@ -21,23 +30,25 @@ def _select(engine, table, id=None, columns=None, start=None, limit=None):
     if ';' in table:
         raise exceptions.HTTPBadRequestError("Invalid table: {}".format(table))
 
-    query = "SELECT {} FROM {}".format(sc, table)
+    scfr = "" if id else "SQL_CALC_FOUND_ROWS "
+    query = "SELECT {}{} FROM {}".format(scfr, sc, table)
     sql_where = "WHRER id = :id"
     sql_page = "WHERE id >= :start LIMIT :limit"
     values = {}
 
-    if start and limit and start.isdigit() and limit.isdigit():
+    if paged:
         query = text(' '.join([query, sql_page]))
-        values["start"] = start
-        values["limit"] = limit
+        values["start"] = int(start)
+        values["limit"] = int(limit)
     elif id and id.isdigit():
         query = text(' '.join([query, sql_where]))
         values["id"] = id
 
     with engine.new_session() as conn:
         result = conn.execute(query, values).fetchall()
+        count = conn.execute("SELECT FOUND_ROWS()").fetchone()[0]
 
-    return [dict(zip(columns, r)) for r in result]
+    return [dict(zip(columns, r)) for r in result], count
 
 
 def _make_key(engine, table, columns, start, limit):
@@ -79,13 +90,13 @@ class RDBTableAccess(object):
             resp.status = falcon.HTTP_200
             return
 
-        result = _select(engine, table, columns=columns, start=start, limit=limit)
+        result, count = _select(engine, table, columns=columns, start=start, limit=limit)
 
         pagi = " start from id {} limit {}".format(start, limit) if start and limit else ""
         log.info("user [{}]: get table [{}]{}".format(user['user'], table, pagi))
 
         resp.context['cache_miss'] = True
-        resp.context['result'] = { 'result': 'ok', 'data': result }
+        resp.context['result'] = { 'result': 'ok', 'data': result, 'total': count }
         resp.status = falcon.HTTP_200
 
     def on_post(self, req, resp, table):
@@ -126,7 +137,7 @@ class RDBRowAccess(object):
         user = req.context['user']
         columns = req.params['column'] if 'column' in req.params else None
         engine = user_db_engine(user)
-        result = _select(engine, table, id=id, columns=columns)
+        result, count = _select(engine, table, id=id, columns=columns)
 
         log.info("user [{}]: get row with id [{}] from table [{}]".format(user['user'], id, table))
         resp.context['result'] = { 'result': 'ok', 'data': result }
