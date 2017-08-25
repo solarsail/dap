@@ -1,4 +1,5 @@
 import logging
+from sdap import config
 
 conf_dict = {
     'version': 1,
@@ -18,7 +19,7 @@ conf_dict = {
     },
     'loggers': {
         'sdap': {
-            'level': logging.DEBUG,
+            'level': config.log_level(),
             'handlers': ['console']
         }
     }

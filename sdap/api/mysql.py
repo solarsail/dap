@@ -12,19 +12,10 @@ log = logging.getLogger(__name__)
 
 #@do_cprofile
 def _select(engine, table, id=None, columns=None, start=None, limit=None):
-    paged = False
-    if start and limit:
-        try:
-            start = int(start)
-            limit = int(limit)
-            paged = True
-        except ValueError:
-            raise exceptions.HTTPBadRequestError("Invalid start or limit parameter")
-
     if not columns:
         columns = engine.columns(table)
-
     sc = ','.join("`{}`".format(c) for c in columns) if type(columns) == list else columns
+
     if ';' in sc:
         raise exceptions.HTTPBadRequestError("Invalid columns: {}".format(sc))
     if ';' in table:
@@ -32,17 +23,23 @@ def _select(engine, table, id=None, columns=None, start=None, limit=None):
 
     scfr = "" if id else "SQL_CALC_FOUND_ROWS "
     query = "SELECT {}{} FROM {}".format(scfr, sc, table)
-    sql_where = "WHRER id = :id"
+    sql_where = "WHERE id = :id"
     sql_page = "WHERE id >= :start LIMIT :limit"
     values = {}
 
-    if paged:
-        query = text(' '.join([query, sql_page]))
-        values["start"] = int(start)
-        values["limit"] = int(limit)
-    elif id and id.isdigit():
-        query = text(' '.join([query, sql_where]))
-        values["id"] = id
+    if start and limit:
+        try:
+            query = text(' '.join([query, sql_page]))
+            values["start"] = int(start)
+            values["limit"] = int(limit)
+        except ValueError:
+            raise exceptions.HTTPBadRequestError("Invalid start or limit parameter")
+    elif id:
+        try:
+            query = text(' '.join([query, sql_where]))
+            values["id"] = int(id)
+        except ValueError:
+            raise exceptions.HTTPBadRequestError("Invalid id")
 
     with engine.new_session() as conn:
         result = conn.execute(query, values).fetchall()
