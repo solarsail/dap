@@ -75,6 +75,10 @@ class Privilege(object):
                         grant.append('INSERT')
                     if 'select' in access:
                         grant.append('SELECT')
+                    if 'update' in access:
+                        grant.append('UPDATE')
+                    if 'delete' in access:
+                        grant.append('DELETE')
                     # FIXME other permissions
                     priv_clause = ','.join(grant)
                     column_clause = "" if column == "_all_" else "({})".format(column)

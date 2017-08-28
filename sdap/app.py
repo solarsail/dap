@@ -18,6 +18,7 @@ app = falcon.API(middleware=[RequireJSON(), StreamReader(), Logger(), ResponseCa
 app.add_error_handler(exc.DBAPIError, handle_db_exception)
 app.add_error_handler(exc.InvalidRequestError, handle_sql_exception)
 app.add_error_handler(exc.StatementError, handle_sql_exception)
+app.add_error_handler(exc.OperationalError, handle_sql_exception)
 
 app.add_route("/register", api.register)
 app.add_route("/privilege/{app}", api.privilege)

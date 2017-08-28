@@ -43,7 +43,7 @@ def create_db_user(user, pswd):
     """Creates a user in MySQL."""
     conn = LOCAL_CONN.connect()
     conn.execute("CREATE USER '{}'@'localhost' IDENTIFIED BY '{}'".format(user, pswd))
-    conn.execute("CREATE USER '{}'@'%' IDENTIFIED BY '{}'".format(user, pswd))
+    conn.execute("CREATE USER '{}'@'%%' IDENTIFIED BY '{}'".format(user, pswd))
     conn.close()
 
 
@@ -221,7 +221,7 @@ def handle_sql_exception(ex, req, resp, params):
     elif (type(ex) == exc.StatementError):
         log.warn("invalid request data: {}".format(params))
         raise exceptions.HTTPBadRequestError("Invalid request data")
-    elif ex.orig[0] == 1142:
+    elif ex.orig[0] == 1142 or ex.orig[0] == 1044:
         raise exceptions.HTTPForbiddenError("Insufficent privileges")
     else:
         log.exception(ex)

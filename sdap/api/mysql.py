@@ -143,13 +143,16 @@ class RDBRowAccess(object):
     def on_put(self, req, resp, table, id):
         """Update an existing row."""
         user = req.context['user']
-        pairs = req.context['doc']
+        pairs = req.context['doc']['values']
         keys = pairs.keys()
         set_clause = ["`{}`=:{}".format(k, k) for k in keys]
         set_clause = ','.join(set_clause)
         engine = user_db_engine(user)
         query = "UPDATE {} SET {} WHERE id=:id".format(table, set_clause)
-        pairs['id'] = id
+        try:
+            pairs['id'] = int(id)
+        except ValueError:
+            raise exceptions.HTTPBadRequestError("Invalid ID")
 
         with engine.new_session() as conn:
             result = conn.execute(query, pairs)

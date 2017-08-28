@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name = "sdap",
-    version = "0.3.4",
+    version = "0.3.5",
     author = "solarsail",
     author_email = "newleaf.lu@gmail.com",
     packages = ["sdap", "sdap.api"],

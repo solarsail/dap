@@ -12,11 +12,12 @@ _column_name_cache = {}
 
 
 class DBEngine(object):
-    def __init__(self, user, password, db, host='127.0.0.1', port=3306):
+    def __init__(self, user, password, db, host='127.0.0.1', port=3306, utf8=True):
         conn_str = 'mysql://{}:{}@{}:{}'.format(user, password, host, port)
         if db:
             conn_str = '/'.join([conn_str, db])
-        conn_str = '?'.join([conn_str, "charset=utf8"])
+        if utf8:
+            conn_str = '?'.join([conn_str, "charset=utf8"])
         self.engine = create_engine(conn_str)
         self.session = sessionmaker(bind=self.engine)
 
