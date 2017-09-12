@@ -194,7 +194,7 @@ class ResponseCache(object):
     def process_response(self, req, resp, resource):
         if 'cache_hit' in resp.context:
             resp.body = cache.cached_query(resp.context['cache_key'])
-            log.info("cache hit, key: {}".format(resp.context['cache_key']))
+            log.debug("cache hit, key: {}".format(resp.context['cache_key']))
         elif 'cache_miss' in resp.context:
             # skip if the response is too large
             if sys.getsizeof(resp.body) < 10 * 1024 * 1024:

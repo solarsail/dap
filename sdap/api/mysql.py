@@ -86,7 +86,6 @@ class RDBTableAccess(object):
         if config.use_cache() and cache.contains_query(key):
             resp.context['cache_hit'] = True
             resp.status = falcon.HTTP_200
-            log.debug("cache hit: {}".format(key))
             return
 
         result, count = _select(engine, table, columns=columns, start=start, limit=limit)
@@ -143,7 +142,6 @@ class RDBRowAccess(object):
         if config.use_cache() and cache.contains_query(key):
             resp.context['cache_hit'] = True
             resp.status = falcon.HTTP_200
-            log.debug("cache hit: {}".format(key))
             return
 
         result, count = _select(engine, table, id=id, columns=columns)
