@@ -9,6 +9,7 @@ redis:
     addr: 127.0.0.1
     port: 6379
     enabled: True
+    expire: 300
 
 log:
     level: WARNING

@@ -22,4 +22,4 @@ def invalidate_query_pattern(pattern):
         _conn.delete(*keys)
 
 def set_query(query, records):
-    _conn.set(query, records)
+    _conn.setex(query, records, _conf['expire'])

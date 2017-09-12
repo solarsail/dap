@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name = "sdap",
-    version = "0.3.5",
+    version = "0.3.7",
     author = "solarsail",
     author_email = "newleaf.lu@gmail.com",
     packages = ["sdap", "sdap.api"],
@@ -11,7 +11,7 @@ setup(
     install_requires = ["falcon", "MySQL-python", "SQLAlchemy", "PyYAML", "passlib", "redis"],
     data_files = [
         ("/etc/sdap", ["etc/uwsgi.ini", "etc/config.yml"]),
-        ("/etc/nginx", ["etc/nginx.ini"]),
+        ("/etc/nginx", ["etc/nginx.conf"]),
         ("/etc/systemd/system", ["etc/sdap.service"]),
     ],
     entry_points = {
