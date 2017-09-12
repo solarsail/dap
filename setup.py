@@ -11,6 +11,7 @@ setup(
     install_requires = ["falcon", "MySQL-python", "SQLAlchemy", "PyYAML", "passlib", "redis"],
     data_files = [
         ("/etc/sdap", ["etc/uwsgi.ini", "etc/config.yml"]),
+        ("/etc/nginx", ["etc/nginx.ini"]),
         ("/etc/systemd/system", ["etc/sdap.service"]),
     ],
     entry_points = {

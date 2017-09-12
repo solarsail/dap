@@ -86,6 +86,7 @@ class RDBTableAccess(object):
         if config.use_cache() and cache.contains_query(key):
             resp.context['cache_hit'] = True
             resp.status = falcon.HTTP_200
+            log.debug("cache hit: {}".format(key))
             return
 
         result, count = _select(engine, table, columns=columns, start=start, limit=limit)
@@ -137,9 +138,18 @@ class RDBRowAccess(object):
         user = req.context['user']
         columns = req.params['column'] if 'column' in req.params else None
         engine = user_db_engine(user)
+        key = _make_key(engine, table, columns, id, -1)
+        resp.context['cache_key'] = key
+        if cache.contains_query(key):
+            resp.context['cache_hit'] = True
+            resp.status = falcon.HTTP_200
+            log.debug("cache hit: {}".format(key))
+            return
+
         result, count = _select(engine, table, id=id, columns=columns)
 
         log.info("user [{}]: get row with id [{}] from table [{}]".format(user['user'], id, table))
+        resp.context['cache_miss'] = True
         resp.context['result'] = { 'result': 'ok', 'data': result }
         resp.status = falcon.HTTP_200
 
@@ -160,6 +170,8 @@ class RDBRowAccess(object):
         with engine.new_session() as conn:
             result = conn.execute(query, pairs)
 
+        key = _make_key(engine, table, columns, id, -1)
+        cache.invalidate_query_pattern("{}".format(key))
         resp.context['result'] = {'result': 'ok'}
         resp.status = falcon.HTTP_200
 
