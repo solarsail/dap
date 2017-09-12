@@ -4,6 +4,7 @@ import falcon
 from sdap import cache
 from sdap.user import user_db_engine
 from sqlalchemy.sql import text
+from sdap import config
 #from sdap.utils import do_cprofile
 
 
@@ -82,7 +83,7 @@ class RDBTableAccess(object):
         engine = user_db_engine(user)
         key = _make_key(engine, table, columns, start, limit)
         resp.context['cache_key'] = key
-        if cache.contains_query(key):
+        if config.use_cache() and cache.contains_query(key):
             resp.context['cache_hit'] = True
             resp.status = falcon.HTTP_200
             return
@@ -92,7 +93,8 @@ class RDBTableAccess(object):
         pagi = " start from id {} limit {}".format(start, limit) if start and limit else ""
         log.info("user [{}]: get table [{}]{}".format(user['user'], table, pagi))
 
-        resp.context['cache_miss'] = True
+        if config.use_cache():
+            resp.context['cache_miss'] = True
         resp.context['result'] = { 'result': 'ok', 'data': result, 'total': count }
         resp.status = falcon.HTTP_200
 
@@ -120,7 +122,8 @@ class RDBTableAccess(object):
             with engine.new_session() as conn:
                 result = conn.execute(query, values_input)
                 count = result.rowcount
-            cache.invalidate_query_pattern("{}|*".format(table))
+            if config.use_cache():
+                cache.invalidate_query_pattern("{}|*".format(table))
         else:
             count = 0
 

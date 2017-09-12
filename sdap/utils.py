@@ -1,3 +1,4 @@
+import sys
 import json
 import logging
 import random
@@ -153,7 +154,7 @@ class StreamReader(object):
 
 class JSONTranslator(object):
     """Serialize and Deserialize json in response and request.
-    
+
     Deserialize json content and insert into req.context['doc'];
     Serialize object in resp.context['result'] into the response.
     """
@@ -195,7 +196,9 @@ class ResponseCache(object):
             resp.body = cache.cached_query(resp.context['cache_key'])
             log.info("cache hit, key: {}".format(resp.context['cache_key']))
         elif 'cache_miss' in resp.context:
-            cache.set_query(resp.context['cache_key'], resp.body)
+            # skip if the response is too large
+            if sys.getsizeof(resp.body) < 10 * 1024 * 1024:
+                cache.set_query(resp.context['cache_key'], resp.body)
 
 
 def handle_db_exception(ex, req, resp, params):

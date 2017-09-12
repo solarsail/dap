@@ -20,3 +20,5 @@ def log_level():
     level_str = CONF['log']['level']
     return _levels[level_str]
 
+def use_cache():
+    return CONF['redis']['enabled']
