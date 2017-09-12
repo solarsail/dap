@@ -140,7 +140,7 @@ class RDBRowAccess(object):
         engine = user_db_engine(user)
         key = _make_key(engine, table, columns, id, -1)
         resp.context['cache_key'] = key
-        if cache.contains_query(key):
+        if config.use_cache() and cache.contains_query(key):
             resp.context['cache_hit'] = True
             resp.status = falcon.HTTP_200
             log.debug("cache hit: {}".format(key))
@@ -170,8 +170,9 @@ class RDBRowAccess(object):
         with engine.new_session() as conn:
             result = conn.execute(query, pairs)
 
-        key = _make_key(engine, table, columns, id, -1)
-        cache.invalidate_query_pattern("{}".format(key))
+        if config.use_cache():
+            key = _make_key(engine, table, columns, id, -1)
+            cache.invalidate_query_pattern("{}".format(key))
         resp.context['result'] = {'result': 'ok'}
         resp.status = falcon.HTTP_200
 
