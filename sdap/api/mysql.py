@@ -4,7 +4,7 @@ import falcon
 from sdap import cache
 from sdap.user import user_db_engine
 from sqlalchemy.sql import text
-from sdap import config
+from sdap import config, exceptions
 #from sdap.utils import do_cprofile
 
 
@@ -42,6 +42,7 @@ def _select(engine, table, id=None, columns=None, start=None, limit=None):
         except ValueError:
             raise exceptions.HTTPBadRequestError("Invalid id")
 
+    log.debug("select: about to execute")
     with engine.new_session() as conn:
         result = conn.execute(query, values).fetchall()
         count = conn.execute("SELECT FOUND_ROWS()").fetchone()[0]
@@ -86,17 +87,16 @@ class RDBTableAccess(object):
         if config.use_cache() and cache.contains_query(key):
             resp.context['cache_hit'] = True
             resp.status = falcon.HTTP_200
-            return
+        else:
+            result, count = _select(engine, table, columns=columns, start=start, limit=limit)
 
-        result, count = _select(engine, table, columns=columns, start=start, limit=limit)
+            if config.use_cache():
+                resp.context['cache_miss'] = True
+            resp.context['result'] = { 'result': 'ok', 'data': result, 'total': count }
+            resp.status = falcon.HTTP_200
 
         pagi = " start from id {} limit {}".format(start, limit) if start and limit else ""
-        log.info("user [{}]: get table [{}]{}".format(user['user'], table, pagi))
-
-        if config.use_cache():
-            resp.context['cache_miss'] = True
-        resp.context['result'] = { 'result': 'ok', 'data': result, 'total': count }
-        resp.status = falcon.HTTP_200
+        log.info("user [{}]: get table({}) [{}]{}".format(user['user'], columns if columns else "*", table, pagi))
 
     def on_post(self, req, resp, table):
         """Create new row(s)."""
@@ -142,14 +142,14 @@ class RDBRowAccess(object):
         if config.use_cache() and cache.contains_query(key):
             resp.context['cache_hit'] = True
             resp.status = falcon.HTTP_200
-            return
+        else:
+            result, count = _select(engine, table, id=id, columns=columns)
 
-        result, count = _select(engine, table, id=id, columns=columns)
+            resp.context['cache_miss'] = True
+            resp.context['result'] = { 'result': 'ok', 'data': result }
+            resp.status = falcon.HTTP_200
 
-        log.info("user [{}]: get row with id [{}] from table [{}]".format(user['user'], id, table))
-        resp.context['cache_miss'] = True
-        resp.context['result'] = { 'result': 'ok', 'data': result }
-        resp.status = falcon.HTTP_200
+        log.info("user [{}]: get row({}) with id [{}] from table [{}]".format(user['user'], columns if columns else "*", id, table))
 
     def on_put(self, req, resp, table, id):
         """Update an existing row."""

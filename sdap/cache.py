@@ -3,6 +3,7 @@ import redis
 
 from config import CONF
 
+
 _conf = CONF['redis']
 _conn = redis.StrictRedis(host=_conf['addr'], port=_conf['port'], db=0)
 _conn.flushall()
@@ -22,4 +23,4 @@ def invalidate_query_pattern(pattern):
         _conn.delete(*keys)
 
 def set_query(query, records):
-    _conn.setex(query, records, _conf['expire'])
+    _conn.set(query, records, ex=_conf['expire'])
