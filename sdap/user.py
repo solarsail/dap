@@ -4,7 +4,9 @@ import logging
 
 from passlib.hash import pbkdf2_sha256
 from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy.orm import exc as orm_exc
 
+from sdap import exceptions
 from sdap.db import Base, DBEngine
 from sdap.config import CONF
 
@@ -118,7 +120,7 @@ class User(Base):
                 if not user.key:
                     _user_cache.pop(user.key, None)
                 return ret
-        except exc.NoResultFound:
+        except orm_exc.NoResultFound:
             raise exceptions.HTTPBadRequestError("app not exist")
 
     @classmethod
