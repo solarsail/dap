@@ -175,7 +175,7 @@ class RDBRowAccess(object):
             result = conn.execute(query, pairs)
 
         if config.use_cache():
-            key = _make_key(engine, table, columns, id, -1)
+            key = _make_key(engine, table, "*", id, -1)
             cache.invalidate_query_pattern("{}".format(key))
         resp.context['result'] = {'result': 'ok'}
         resp.status = falcon.HTTP_200
