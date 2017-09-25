@@ -1,5 +1,6 @@
 import logging
 import falcon
+import base64
 
 from sdap import cache
 from sdap.user import user_db_engine
@@ -12,10 +13,12 @@ log = logging.getLogger(__name__)
 
 
 #@do_cprofile
-def _select(engine, table, id=None, columns=None, start=None, limit=None):
+def _select(engine, table, id=None, columns=None, start=None, limit=None, where=None):
     if not columns:
         columns = engine.columns(table)
-    sc = ','.join("`{}`".format(c) for c in columns) if type(columns) == list else columns
+    if type(columns) != list:
+        columns = [columns]
+    sc = ','.join("`{}`".format(c) for c in columns)
 
     if ';' in sc:
         raise exceptions.HTTPBadRequestError("Invalid columns: {}".format(sc))
@@ -24,7 +27,7 @@ def _select(engine, table, id=None, columns=None, start=None, limit=None):
 
     scfr = "" if id else "SQL_CALC_FOUND_ROWS "
     query = "SELECT {}{} FROM {}".format(scfr, sc, table)
-    sql_where = "WHERE id = :id"
+    sql_id = "WHERE id = :id"
     sql_page = "WHERE id >= :start LIMIT :limit"
     values = {}
 
@@ -37,10 +40,12 @@ def _select(engine, table, id=None, columns=None, start=None, limit=None):
             raise exceptions.HTTPBadRequestError("Invalid start or limit parameter")
     elif id:
         try:
-            query = text(' '.join([query, sql_where]))
+            query = text(' '.join([query, sql_id]))
             values["id"] = int(id)
         except ValueError:
             raise exceptions.HTTPBadRequestError("Invalid id")
+    elif where:
+        query = text(' '.join([query, "WHERE {}".format(where)]))
 
     log.debug("select: about to execute")
     with engine.new_session() as conn:
@@ -80,6 +85,7 @@ class RDBTableAccess(object):
         columns = req.params['column'] if 'column' in req.params else None # columns to query
         start = req.params['start'] if 'start' in req.params else None     # pagination: start id
         limit = req.params['limit'] if 'limit' in req.params else None     # pagination: row limit
+        where = base64.b64decode(req.params['where']) if 'where' in req.params else None     # query filters
 
         engine = user_db_engine(user)
         key = _make_key(engine, table, columns, start, limit)
@@ -88,7 +94,7 @@ class RDBTableAccess(object):
             resp.context['cache_hit'] = True
             resp.status = falcon.HTTP_200
         else:
-            result, count = _select(engine, table, columns=columns, start=start, limit=limit)
+            result, count = _select(engine, table, columns=columns, start=start, limit=limit, where=where)
 
             if config.use_cache():
                 resp.context['cache_miss'] = True
