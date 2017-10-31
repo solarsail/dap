@@ -13,3 +13,6 @@ edit /etc/sdap/config.yml
 
 ## START
 start service `nginx`, `redis` and `sdap`
+
+---
+See Wiki for more info.
