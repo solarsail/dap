@@ -1,15 +1,15 @@
-== PREPARATION ==
+## PREPARATION
 - create database user with grant option
 - create tables in database `sdata`
 
-== INSTALLATION ==
+## INSTALLATION
 run `install.sh`
 
-== INITIALIZATION ==
+## INITIALIZATION
 run `sdap_init`
 
-== CONFIGURATION ==
+## CONFIGURATION
 edit /etc/sdap/config.yml
 
-== START ==
+## START
 start service `nginx`, `redis` and `sdap`
