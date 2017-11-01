@@ -1,6 +1,6 @@
 ## PREPARATION
 - create database user with grant option
-- create tables in database `sdata`
+- create tables in database `sdata` (or use another database name and specify in config file)
 
 ## INSTALLATION
 run `install.sh`
