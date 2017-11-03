@@ -147,6 +147,7 @@ class RequireJSON(object):
 
 
 class StreamReader(object):
+    """Retrieve the request body from the stream."""
     def process_request(self, req, resp):
         body = req.stream.read(req.content_length or 0)
         req.context['body'] = body
@@ -191,6 +192,7 @@ class JSONTranslator(object):
 
 
 class ResponseCache(object):
+    """Get the response body from cache if the handler marked a cache hit."""
     def process_response(self, req, resp, resource):
         if 'cache_hit' in resp.context:
             resp.body = cache.cached_query(resp.context['cache_key'])
@@ -202,6 +204,7 @@ class ResponseCache(object):
 
 
 def handle_db_exception(ex, req, resp, params):
+    """Handle database related exceptions."""
     log.exception(ex)
     code, description = ex.orig
     if code == 1045:
@@ -218,6 +221,7 @@ def handle_db_exception(ex, req, resp, params):
         raise exceptions.HTTPServerError(description)
 
 def handle_sql_exception(ex, req, resp, params):
+    """Handle SQL related exceptions."""
     if (type(ex) == exc.NoSuchTableError):
         log.warn("table not exist: {}".format(params))
         raise exceptions.HTTPBadRequestError("Table not exist")

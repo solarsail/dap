@@ -40,6 +40,7 @@ class DBEngine(object):
 
 
     def columns(self, table):
+        """Get all column names of a table."""
         if table in _column_name_cache:
             return _column_name_cache[table]
         else:
@@ -50,6 +51,7 @@ class DBEngine(object):
             return column_names
 
     def tables(self, db):
+        """Get all table names in a database."""
         inspector = inspect(self.engine)
         tables = inspector.get_table_names(db)
         return tables

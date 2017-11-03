@@ -9,6 +9,7 @@ from sdap.db import LOCAL_CONN
 log = logging.getLogger(__name__)
 
 class Register(object):
+    """Register an app user."""
     def on_post(self, req, resp):
         data = req.context['doc']
 

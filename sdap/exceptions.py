@@ -17,7 +17,7 @@ class DAPHTTPError(falcon.HTTPError):
 
 
 class HTTPServerError(DAPHTTPError):
-    """Unable to service due to backend server errors."""
+    """Unable to serve due to backend server errors."""
     def __init__(self, msg):
         super(HTTPServerError, self).__init__(falcon.HTTP_500, msg)
 
@@ -29,11 +29,13 @@ class HTTPBadRequestError(DAPHTTPError):
 
 
 class HTTPForbiddenError(DAPHTTPError):
+    """Access denied."""
     def __init__(self, msg):
         super(HTTPForbiddenError, self).__init__(falcon.HTTP_403, msg)
 
 
 class HTTPMissingParamError(DAPHTTPError):
+    """Request lacks required parameters."""
     def __init__(self, msg):
         super(HTTPMissingParamError, self).__init__(falcon.HTTP_400, "Missing parameter: {}".format(msg))
 
