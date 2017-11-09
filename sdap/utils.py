@@ -7,6 +7,7 @@ import falcon
 import cProfile
 import pstats
 
+from datetime import date, datetime
 from sqlalchemy import exc
 from sdap import exceptions, cache
 from sdap.db import LOCAL_CONN
@@ -153,6 +154,11 @@ class StreamReader(object):
         req.context['body'] = body
 
 
+def _dt_serialize(obj):
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError("Type {} not serializable".format(type(obj)))
+
 class JSONTranslator(object):
     """Serialize and Deserialize json in response and request.
 
@@ -188,7 +194,7 @@ class JSONTranslator(object):
         if 'result' not in resp.context:
             return
 
-        resp.body = json.dumps(resp.context['result'])
+        resp.body = json.dumps(resp.context['result'], default=_dt_serialize)
 
 
 class ResponseCache(object):
